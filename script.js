@@ -407,8 +407,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const inStock = p.is_in_stock !== false;
       const imgSrc = p.image_url || '';
       const imgTag = imgSrc
-        ? `<img src="${imgSrc}" alt="${p.name}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"/>
-           <div class="card-img-placeholder" style="display:none;">🌸</div>`
+        ? `<img src="${imgSrc}" alt="${p.name}" data-pid="${p.id}" onerror="this.style.display='none';document.querySelector('.card-ph-${p.id}').style.display='flex'"/>
+           <div class="card-img-placeholder card-ph-${p.id}" style="display:none;">🌸</div>`
         : `<div class="card-img-placeholder">🌸</div>`;
       return `
       <div class="card${inStock ? '' : ' out-of-stock'}" data-id="${p.id}">
@@ -463,7 +463,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     el.innerHTML = sellers.map(p => `
       <div class="seller-card" data-id="${p.id}">
-        <img src="${p.image_url || 'assets/quint_img_allstar.jpg'}" alt="${p.name}" loading="lazy"/>
+        <img src="${p.image_url || 'assets/quint_img_allstar.jpg'}" alt="${p.name}" onerror="this.src='assets/quint_img_allstar.jpg'"/>
         <p>${p.name}</p>
         ${p.price ? `<span class="seller-price">₦${Number(p.price).toLocaleString()}</span>` : ''}
       </div>`).join('');
@@ -778,6 +778,65 @@ document.addEventListener('DOMContentLoaded', () => {
     maybeAutoFillDesc();
   });
   document.getElementById('productDesc').addEventListener('input', function() { this.dataset.autoFilled = 'false'; });
+
+  // ── AI Description Generator ───────────────────────────────
+  document.getElementById('aiDescBtn').addEventListener('click', async () => {
+    const name     = document.getElementById('productName').value.trim();
+    const rawCat   = document.getElementById('productCategory').value;
+    const category = rawCat === '__other__'
+      ? (document.getElementById('productCategoryCustom').value.trim() || 'fragrance product')
+      : rawCat;
+    const btn    = document.getElementById('aiDescBtn');
+    const status = document.getElementById('aiDescStatus');
+    const descEl = document.getElementById('productDesc');
+
+    if (!name && !category) {
+      showToast('Enter a product name or category first.', 'error');
+      return;
+    }
+
+    btn.disabled     = true;
+    btn.textContent  = '⏳ Generating…';
+    status.textContent = '';
+
+    try {
+      const prompt = `Write a 2-sentence product description for a ${category || 'fragrance'} product called "${name || category}" sold by Quintessence, a premium perfume brand in Nigeria. 
+The description must: be persuasive and sensory, mention key benefits, feel luxury yet accessible, and end with a compelling reason to buy. 
+Return ONLY the description text, nothing else. No quotes, no labels, no preamble.`;
+
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 120,
+          messages: [{ role: 'user', content: prompt }]
+        })
+      });
+
+      const data = await res.json();
+      if (data.content && data.content[0] && data.content[0].text) {
+        descEl.value = data.content[0].text.trim();
+        descEl.dataset.autoFilled = 'false';
+        status.textContent = '✓ Generated';
+        setTimeout(() => { status.textContent = ''; }, 3000);
+      } else {
+        throw new Error('No content in response');
+      }
+    } catch (err) {
+      // Fallback to static pool if API fails
+      const fallback = getAutoDescription(name, category);
+      if (fallback) {
+        descEl.value = fallback;
+        status.textContent = 'Used template (AI unavailable)';
+      } else {
+        showToast('Could not generate description. Fill in name and category first.', 'error');
+      }
+    } finally {
+      btn.disabled    = false;
+      btn.textContent = '✨ Generate with AI';
+    }
+  });
 
   // Video title chips
   document.querySelectorAll('#videoFormModal .review-chip').forEach(chip => {
