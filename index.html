@@ -1613,38 +1613,72 @@
     </div>
 
     <script src="script.js"></script>
-  <!-- DESCRIPTION HELPER MODAL (AI / Fix) -->
-<div class="admin-modal-overlay" id="descHelperModal" aria-hidden="true">
-  <div class="admin-modal-box desc-helper-box" role="dialog" aria-modal="true" aria-label="Description Helper">
-    <button class="admin-modal-close" id="closeDescHelperModal" aria-label="Close">&#10005;</button>
-    <h3 style="margin-bottom: .4rem;">Description Helper</h3>
+    <!-- DESCRIPTION HELPER MODAL (AI / Fix) -->
+    <div class="admin-modal-overlay" id="descHelperModal" aria-hidden="true">
+      <div
+        class="admin-modal-box desc-helper-box"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Description Helper"
+      >
+        <button
+          class="admin-modal-close"
+          id="closeDescHelperModal"
+          aria-label="Close"
+        >
+          &#10005;
+        </button>
+        <h3 style="margin-bottom: 0.4rem">Description Helper</h3>
 
-    <div class="desc-helper-tabs">
-      <button type="button" class="desc-tab-btn active" id="descTabAi">✨ AI</button>
-      <button type="button" class="desc-tab-btn" id="descTabFix">🛠 Fix</button>
-    </div>
+        <div class="desc-helper-tabs">
+          <button type="button" class="desc-tab-btn active" id="descTabAi">
+            ✨ AI
+          </button>
+          <button type="button" class="desc-tab-btn" id="descTabFix">
+            🛠 Fix
+          </button>
+        </div>
 
-    <div class="desc-tab-panel" id="descPanelAi">
-      <p class="desc-helper-hint">Generate a short product description based on name + category. Review before applying.</p>
-      <div class="desc-helper-actions">
-        <button type="button" class="ai-gen-btn" id="descAiGenerateBtn">Generate</button>
-        <span id="descAiStatus" class="desc-helper-status"></span>
+        <div class="desc-tab-panel" id="descPanelAi">
+          <p class="desc-helper-hint">
+            Generate a short product description based on name + category.
+            Review before applying.
+          </p>
+          <div class="desc-helper-actions">
+            <button type="button" class="ai-gen-btn" id="descAiGenerateBtn">
+              Generate
+            </button>
+            <span id="descAiStatus" class="desc-helper-status"></span>
+          </div>
+          <textarea
+            id="descAiDraft"
+            rows="5"
+            placeholder="AI draft will appear here..."
+          ></textarea>
+          <div class="desc-helper-footer">
+            <button type="button" class="admin-btn" id="descApplyAiBtn">
+              Apply to Description
+            </button>
+          </div>
+        </div>
+
+        <div class="desc-tab-panel" id="descPanelFix" style="display: none">
+          <p class="desc-helper-hint">
+            Clean up the current description (spacing, punctuation, casing)
+            without changing meaning.
+          </p>
+          <textarea
+            id="descFixDraft"
+            rows="5"
+            placeholder="Your current description will appear here..."
+          ></textarea>
+          <div class="desc-helper-footer">
+            <button type="button" class="admin-btn" id="descApplyFixBtn">
+              Apply Fix
+            </button>
+          </div>
+        </div>
       </div>
-      <textarea id="descAiDraft" rows="5" placeholder="AI draft will appear here..."></textarea>
-      <div class="desc-helper-footer">
-        <button type="button" class="admin-btn" id="descApplyAiBtn">Apply to Description</button>
-      </div>
     </div>
-
-    <div class="desc-tab-panel" id="descPanelFix" style="display:none;">
-      <p class="desc-helper-hint">Clean up the current description (spacing, punctuation, casing) without changing meaning.</p>
-      <textarea id="descFixDraft" rows="5" placeholder="Your current description will appear here..."></textarea>
-      <div class="desc-helper-footer">
-        <button type="button" class="admin-btn" id="descApplyFixBtn">Apply Fix</button>
-      </div>
-    </div>
-  </div>
-</div>
-
   </body>
 </html>
