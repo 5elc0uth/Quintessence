@@ -150,8 +150,9 @@ a { text-decoration: none; }
 /* ===== HERO CAROUSEL ===== */
 .hero-carousel {
   position: relative;
-  height: 100vh;
-  min-height: 560px;
+  height: 92vh;        /* was 100vh — reduced to keep proportions better */
+  max-height: 780px;   /* prevents extreme crop on very tall monitors */
+  min-height: 540px;
   overflow: hidden;
 }
 .hero-slides {
@@ -170,6 +171,10 @@ a { text-decoration: none; }
   opacity: 0;
   transition: opacity 0.9s cubic-bezier(0.4,0,0.2,1);
   pointer-events: none;
+  /* Background properties — controlled centrally so images aren't over-zoomed */
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
 }
 .hero-slide.active {
   opacity: 1;
@@ -568,6 +573,12 @@ section { padding: 4.5rem 1.5rem; }
   object-fit: cover;
   border-radius: 12px;
   transition: transform 0.8s;
+}
+/* Pink placeholder while IntersectionObserver lazy-loads the real image */
+.seller-card img.lazy-img {
+  background: linear-gradient(135deg, #fce4ec, #f8bbd0);
+  object-fit: contain;
+  opacity: 0.6;
 }
 .seller-card p { padding: 0.8rem 0 0.2rem; font-weight: 600; color: var(--pink-dark); font-size: 0.92rem; }
 .seller-price { color: var(--pink-btn); font-weight: 700; font-size: 1rem; }
@@ -1325,7 +1336,7 @@ footer { background: #111; color: white; }
   .nav-cta      { display: none; } /* Order button hidden on small mobile, available via hamburger */
 
   /* Hero */
-  .overlay      { padding: 1.6rem 1.1rem; border-radius: 16px; }
+  .overlay      { padding: 1.5rem 1rem; border-radius: 14px; max-width: 92%; }
   .overlay h1   { font-size: 1.9rem; }
   .overlay h4   { font-size: 0.85rem; }
   .overlay p    { font-size: 0.88rem; }
@@ -1394,6 +1405,18 @@ footer { background: #111; color: white; }
   .form-actions .admin-btn,
   .form-actions .cancel-btn { width: 100%; text-align: center; }
   .section-header { flex-direction: column; align-items: flex-start; }
+
+  /* AI generate button */
+  .ai-gen-btn { font-size: 0.73rem; padding: 0.3rem 0.7rem; }
+
+  /* Campaign card */
+  .campaign-card { padding: 1rem; }
+  .campaign-card h4 { font-size: 0.9rem; }
+
+  /* Settings row — stack label above input on small screens */
+  .settings-row { flex-direction: column; align-items: flex-start; gap: 0.4rem; }
+  .settings-row label { width: auto; }
+  .settings-row input { width: 100%; }
 }
 
 /* ── Very small mobile (360px) ── */
@@ -1409,6 +1432,19 @@ footer { background: #111; color: white; }
   .faq-question { font-size: 0.82rem; }
   .footer-brand h3 { font-size: 1.05rem; }
   .admin-modal-box { padding: 1rem 0.8rem; }
+  .ai-gen-btn { font-size: 0.7rem; padding: 0.28rem 0.6rem; }
+  .campaign-card { padding: 0.85rem; }
+
+  /* Filter tabs — shrink on very small phones */
+  .filter-btn   { font-size: 0.75rem; padding: 0.3rem 0.8rem; }
+
+  /* Overlay — very tight on 360px */
+  .overlay      { padding: 1.2rem 0.9rem; max-width: 95%; }
+
+  /* Admin form inputs full-width on tiny screens */
+  .form-group input,
+  .form-group select,
+  .form-group textarea { font-size: 0.82rem; }
 }
 /* =============================================================
    NEW FEATURES — v2
@@ -1867,6 +1903,7 @@ footer { background: #111; color: white; }
   .seller-card img { height: 150px; }
   .cart-drawer    { width: 100%; }
   .modal-actions  { flex-direction: column; }
+  .modal-actions .cta-btn { width: 100%; min-width: unset; }
 }
 @media (max-width: 480px) {
   .carousel-arrow { display: none; }
@@ -1876,7 +1913,144 @@ footer { background: #111; color: white; }
   #productSearch  { font-size: 0.85rem; }
   .hero-btns      { flex-direction: column; align-items: center; }
   .hero-btns .cta-btn { width: 100%; max-width: 260px; }
+
+  /* Carousel dots — smaller on mobile */
+  .carousel-dots  { gap: 0.4rem; bottom: 1rem; }
+  .carousel-dot   { width: 8px; height: 8px; }
+
+  /* Hero height on short phones */
+  .hero-carousel  { height: 85vh; min-height: 440px; max-height: none; }
+
+  /* Hide scroll hint on mobile (redundant with touch) */
+  .hero-scroll-hint { display: none; }
+
+  /* Product modal video */
+  .modal-product-video { height: 180px; }
+  /* Toast — raised slightly on mobile to clear bottom nav bars */
+  .toast.show { bottom: 2.5rem; }
 }
 @media (max-width: 360px) {
   .seller-card    { flex: 0 0 130px; }
+
+  /* Carousel dots tiny */
+  .carousel-dot   { width: 6px; height: 6px; }
+  .hero-carousel  { height: 80vh; min-height: 380px; }
+}
+
+/* ===== Description Helper Modal (AI / Fix) ===== */
+.desc-helper-box {
+  max-width: 720px;
+}
+.desc-helper-tabs {
+  display: flex;
+  gap: .5rem;
+  margin: .6rem 0 .8rem;
+  flex-wrap: wrap;
+}
+.desc-tab-btn {
+  border: 1px solid var(--pink-border);
+  background: rgba(255,255,255,0.03);
+  color: #fff;
+  border-radius: 10px;
+  padding: .35rem .7rem;
+  cursor: pointer;
+  font-size: .9rem;
+}
+.desc-tab-btn.active {
+  background: rgba(255,77,166,0.18);
+}
+.desc-helper-hint {
+  color: #bbb;
+  font-size: .85rem;
+  margin: 0 0 .5rem;
+}
+.desc-helper-actions {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  flex-wrap: wrap;
+  margin-bottom: .5rem;
+}
+.desc-helper-status {
+  font-size: .8rem;
+  color: #aaa;
+}
+#descAiDraft, #descFixDraft {
+  width: 100%;
+  border-radius: 10px;
+  border: 1px solid var(--pink-border);
+  background: rgba(0,0,0,0.15);
+  color: #fff;
+  padding: .7rem;
+  resize: vertical;
+}
+.desc-helper-footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: .6rem;
+}
+
+/* Responsive: modal padding */
+@media (max-width: 520px) {
+  .desc-helper-box { max-width: 94vw; }
+  .desc-helper-footer { justify-content: stretch; }
+  .desc-helper-footer .admin-btn { width: 100%; }
+}
+
+
+/* ===== Premium Mobile Sidebar + Admin Card Layout ===== */
+
+@media (max-width: 768px) {
+
+  .admin-sidebar {
+    position: fixed;
+    left: -260px;
+    top: 0;
+    height: 100%;
+    width: 240px;
+    transition: left 0.3s ease;
+    z-index: 9999;
+  }
+
+  .admin-sidebar.open {
+    left: 0;
+  }
+
+  .admin-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.4);
+    display: none;
+    z-index: 9998;
+  }
+
+  .admin-overlay.active {
+    display: block;
+  }
+
+  table thead {
+    display: none;
+  }
+
+  table tr {
+    display: block;
+    background: #fff;
+    margin-bottom: 16px;
+    padding: 14px;
+    border-radius: 14px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.05);
+  }
+
+  table td {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0;
+    border: none;
+  }
+
+  table td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: #8b2e46;
+  }
 }
