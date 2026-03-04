@@ -753,11 +753,13 @@ async function ensureSlideBackground(slide) {
   // ═══════════════════════════════════════════════════════════
   function renderBestSellers(products) {
     const sellers = products.filter((p) => p.is_best_seller);
+    const section = document.querySelector(".best-sellers");
     const el = document.getElementById("bestSellersCarousel");
     if (!sellers.length) {
-      el.innerHTML = `<p style="text-align:center;color:#ccc;padding:2rem;width:100%;font-size:0.9rem;">Best sellers will appear here once the admin marks products.</p>`;
+      if (section) section.style.display = "none";
       return;
     }
+    if (section) section.style.display = "";
     el.innerHTML = sellers
       .map(
         (p) => `
@@ -837,8 +839,8 @@ async function ensureSlideBackground(slide) {
         <p style="color:#bbb;margin-top:0.5rem;">No products yet.</p>
         <p style="color:#ccc;font-size:0.85rem;margin-top:0.3rem;">Add products from the Admin Panel.</p>
       </div>`;
-    document.getElementById("bestSellersCarousel").innerHTML = `
-      <p style="text-align:center;color:#ccc;padding:2rem;width:100%;font-size:0.9rem;">Best sellers will appear here once the admin adds products.</p>`;
+    const bsSection = document.querySelector(".best-sellers");
+    if (bsSection) bsSection.style.display = "none";
   }
 
   // ═══════════════════════════════════════════════════════════
