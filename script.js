@@ -1418,15 +1418,7 @@ document.getElementById("descTabFix")?.addEventListener("click", () => {
       chip.classList.add("active");
     });
   });
-  document.querySelectorAll(".edit-video-chip").forEach((chip) => {
-    chip.addEventListener("click", () => {
-      document.getElementById("editVideoTitle").value = chip.dataset.text;
-      document
-        .querySelectorAll(".edit-video-chip")
-        .forEach((c) => c.classList.remove("active"));
-      chip.classList.add("active");
-    });
-  });
+  // edit-video-chip listeners removed (edit modal replaced by preview modal)
 
   // ═══════════════════════════════════════════════════════════
   //  ADMIN — PRODUCTS CRUD (with stock toggle)
@@ -2001,7 +1993,7 @@ if (cropState.img && !cropState.croppedBlob) {
         <td data-label="Title"><strong>${v.title}</strong></td>
         <td data-label="Added">${new Date(v.created_at).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}</td>
         <td data-label="Actions" class="actions-cell"><div class="actions-cell-inner">
-          <button class="action-btn edit-btn" data-id="${v.id}" data-title="${v.title.replace(/"/g, "&quot;")}">✏️ Edit</button>
+          <button class="action-btn edit-btn" data-id="${v.id}" data-url="${v.video_url}" data-title="${v.title.replace(/"/g, "&quot;")}">▶ Preview</button>
           <button class="action-btn delete-btn" data-id="${v.id}">🗑️ Delete</button>
         </div></td>
       </tr>`,
@@ -2011,7 +2003,7 @@ if (cropState.img && !cropState.croppedBlob) {
       .querySelectorAll(".edit-btn")
       .forEach((btn) =>
         btn.addEventListener("click", () =>
-          openEditVideoModal(btn.dataset.id, btn.dataset.title),
+          openVideoPreviewModal(btn.dataset.url, btn.dataset.title),
         ),
       );
     tbody
@@ -2021,103 +2013,202 @@ if (cropState.img && !cropState.croppedBlob) {
       );
   }
 
-  function openEditVideoModal(id, title) {
-    document.getElementById("editVideoId").value = id;
-    document.getElementById("editVideoTitle").value = title;
-    document
-      .querySelectorAll(".edit-video-chip")
-      .forEach((c) => c.classList.remove("active"));
-    document.getElementById("editVideoModal").classList.add("open");
+  // ═══════════════════════════════════════════════════════════
+  //  VIDEO PREVIEW MODAL
+  // ═══════════════════════════════════════════════════════════
+  const ASPECT_RATIOS = {
+    "16/9":  { w: 480, h: 270, label: "YouTube 16:9" },
+    "9/16":  { w: 200, h: 356, label: "TikTok 9:16" },
+    "1/1":   { w: 320, h: 320, label: "Instagram 1:1" },
+    "4/5":   { w: 280, h: 350, label: "Instagram 4:5" },
+  };
+  let vprevZoom = 1;
+  let vprevRatio = "16/9";
+
+  let vprevCurrentUrl = "";
+
+  function openVideoPreviewModal(url, title) {
+    vprevCurrentUrl = url;
+    document.getElementById("vprevTitle").textContent = title || "Video Preview";
+    const video = document.getElementById("vprevVideo");
+    video.src = url;
+    video.load();
+    vprevZoom = 1;
+    vprevRatio = "16/9";
+    vprevOffset = { x: 0, y: 0 };
+    applyVprevRatio();
+    document.querySelectorAll(".vprev-preset").forEach(btn => {
+      btn.classList.toggle("active", btn.dataset.ratio === vprevRatio);
+    });
+    document.getElementById("videoPreviewModal").classList.add("open");
   }
 
-  document
-    .getElementById("saveEditVideoBtn")
-    .addEventListener("click", async () => {
-      const id = document.getElementById("editVideoId").value;
-      const title = document.getElementById("editVideoTitle").value.trim();
-      if (!title) {
-        showToast("Please enter a title.", "error");
-        return;
-      }
-      const btn = document.getElementById("saveEditVideoBtn");
-      btn.textContent = "Saving…";
-      btn.disabled = true;
+  // Drag state for repositioning video inside frame
+  let vprevDrag = { active: false, startX: 0, startY: 0, ox: 0, oy: 0 };
+  let vprevOffset = { x: 0, y: 0 };
 
-      const newFile = document.getElementById("editVideoFile").files[0];
-      let updatePayload = { title };
-      if (newFile) {
-        document.getElementById("editUploadProgress").style.display = "block";
-        const filename = `video_${Date.now()}.${newFile.name.split(".").pop()}`;
-        const { error: ue } = await db.storage
-          .from("videos")
-          .upload(filename, newFile, { upsert: true });
-        document.getElementById("editUploadProgress").style.display = "none";
-        if (ue) {
-          showToast("Upload failed: " + ue.message, "error");
-          btn.textContent = "Save Changes";
-          btn.disabled = false;
-          return;
-        }
-        updatePayload.video_url = db.storage
-          .from("videos")
-          .getPublicUrl(filename).data.publicUrl;
-      }
+  function applyVprevRatio() {
+    const r = ASPECT_RATIOS[vprevRatio];
+    const frame = document.getElementById("vprevFrame");
+    const stage = document.getElementById("vprevStage");
 
-      const { error } = await db
-        .from("videos")
-        .update(updatePayload)
-        .eq("id", id);
-      btn.textContent = "Save Changes";
-      btn.disabled = false;
-      if (error) showToast("Error: " + error.message, "error");
-      else {
-        showToast("Video updated ✅");
-        closeEditVideoModal();
-        loadAdminVideos();
-        loadData();
-      }
+    // Frame is fixed to a comfortable size that fits the stage
+    const stageW = stage.clientWidth  || 520;
+    const stageH = stage.clientHeight || 340;
+    const maxW = stageW - 32;
+    const maxH = stageH - 32;
+    const ratioPx = r.w / r.h;
+
+    let fw = maxW, fh = maxW / ratioPx;
+    if (fh > maxH) { fh = maxH; fw = fh * ratioPx; }
+    fw = Math.round(fw);
+    fh = Math.round(fh);
+
+    frame.style.width  = fw + "px";
+    frame.style.height = fh + "px";
+
+    // Apply zoom to video inside the fixed frame (crop tool behaviour)
+    const video = document.getElementById("vprevVideo");
+    video.style.transform = `translate(${vprevOffset.x}px, ${vprevOffset.y}px) scale(${vprevZoom})`;
+
+    document.getElementById("vprevZoomLabel").textContent = Math.round(vprevZoom * 100) + "%";
+    document.getElementById("vprevRatioLabel").textContent = r.label;
+  }
+
+  // Reset offset when changing ratio
+  function resetVprevOffset() {
+    vprevOffset = { x: 0, y: 0 };
+  }
+
+  // Drag to reposition video inside frame
+  function initVprevDrag() {
+    const video = document.getElementById("vprevVideo");
+    const frame = document.getElementById("vprevFrame");
+
+    function startDrag(e) {
+      vprevDrag.active = true;
+      const pt = e.touches ? e.touches[0] : e;
+      vprevDrag.startX = pt.clientX;
+      vprevDrag.startY = pt.clientY;
+      vprevDrag.ox = vprevOffset.x;
+      vprevDrag.oy = vprevOffset.y;
+      video.style.cursor = "grabbing";
+      e.preventDefault();
+    }
+    function moveDrag(e) {
+      if (!vprevDrag.active) return;
+      const pt = e.touches ? e.touches[0] : e;
+      vprevOffset.x = vprevDrag.ox + (pt.clientX - vprevDrag.startX);
+      vprevOffset.y = vprevDrag.oy + (pt.clientY - vprevDrag.startY);
+      video.style.transform = `translate(${vprevOffset.x}px, ${vprevOffset.y}px) scale(${vprevZoom})`;
+      e.preventDefault();
+    }
+    function endDrag() {
+      vprevDrag.active = false;
+      video.style.cursor = "grab";
+    }
+
+    frame.addEventListener("mousedown",  startDrag, { passive: false });
+    frame.addEventListener("touchstart", startDrag, { passive: false });
+    window.addEventListener("mousemove",  moveDrag,  { passive: false });
+    window.addEventListener("touchmove",  moveDrag,  { passive: false });
+    window.addEventListener("mouseup",    endDrag);
+    window.addEventListener("touchend",   endDrag);
+  }
+  initVprevDrag();
+
+  function closeVideoPreviewModal() {
+    document.getElementById("videoPreviewModal").classList.remove("open");
+    const video = document.getElementById("vprevVideo");
+    video.pause();
+    video.src = "";
+  }
+
+  document.getElementById("closeVideoPreviewModal").addEventListener("click", closeVideoPreviewModal);
+  document.getElementById("cancelVideoPreviewModal").addEventListener("click", closeVideoPreviewModal);
+
+  // Apply chosen ratio to the live video section on the site
+  document.getElementById("applyVideoPreviewBtn").addEventListener("click", () => {
+    const r = ASPECT_RATIOS[vprevRatio];
+    const section = document.getElementById("videos");
+    const grid = document.getElementById("videoGrid");
+    if (!grid) { showToast("No video section found.", "error"); return; }
+
+    // Show section if hidden
+    if (section) section.style.display = "";
+
+    // Build a fresh video element with the chosen aspect ratio applied inline
+    // We re-inject the video from vprevCurrentUrl with the new dimensions
+    const [rw, rh] = vprevRatio.split("/").map(Number);
+
+    // Compute a good display size for the aspect ratio
+    let boxW = 400, boxH = Math.round(boxW * rh / rw);
+    if (vprevRatio === "9/16") { boxW = 220; boxH = 390; }
+    else if (vprevRatio === "4/5") { boxW = 260; boxH = 325; }
+    else if (vprevRatio === "1/1") { boxW = 300; boxH = 300; }
+
+    // Update all existing video boxes in the grid to use the new ratio
+    grid.querySelectorAll(".video-box").forEach(box => {
+      box.style.aspectRatio = vprevRatio;
+    });
+    grid.querySelectorAll("video").forEach(v => {
+      v.style.aspectRatio = vprevRatio;
+      v.style.width = "100%";
+      v.style.height = "auto";
+      v.style.objectFit = "cover";
     });
 
-  function closeEditVideoModal() {
-    document.getElementById("editVideoModal").classList.remove("open");
-    document.getElementById("editVideoFile").value = "";
-    document.getElementById("editVideoPreview").src = "";
-    document.getElementById("editVideoPreview").style.display = "none";
-    document.getElementById("editVideoReSelectBtn").style.display = "none";
-    document
-      .querySelectorAll(".edit-video-chip")
-      .forEach((c) => c.classList.remove("active"));
-  }
-
-  document
-    .getElementById("closeEditVideoModal")
-    .addEventListener("click", closeEditVideoModal);
-  document
-    .getElementById("cancelEditVideoModal")
-    .addEventListener("click", closeEditVideoModal);
-  document.getElementById("editVideoFile").addEventListener("change", (e) => {
-    const file = e.target.files[0];
-    const prev = document.getElementById("editVideoPreview");
-    const reBtn = document.getElementById("editVideoReSelectBtn");
-    if (file) {
-      prev.src = URL.createObjectURL(file);
-      prev.style.display = "block";
-      reBtn.style.display = "inline-block";
+    // Adjust grid columns for portrait vs landscape ratios
+    if (vprevRatio === "9/16" || vprevRatio === "4/5") {
+      grid.style.gridTemplateColumns = "repeat(auto-fit, minmax(180px, 240px))";
+    } else if (vprevRatio === "1/1") {
+      grid.style.gridTemplateColumns = "repeat(auto-fit, minmax(240px, 300px))";
     } else {
-      prev.src = "";
-      prev.style.display = "none";
-      reBtn.style.display = "none";
+      // 16:9 landscape — default
+      grid.style.gridTemplateColumns = "";
+    }
+
+    showToast(`Applied ${r.label} to video section ✅`);
+    closeVideoPreviewModal();
+  });
+
+  // Close on backdrop click
+  document.getElementById("videoPreviewModal").addEventListener("click", (e) => {
+    if (e.target === document.getElementById("videoPreviewModal")) closeVideoPreviewModal();
+  });
+
+  // Preset buttons
+  document.querySelectorAll(".vprev-preset").forEach(btn => {
+    btn.addEventListener("click", () => {
+      vprevRatio = btn.dataset.ratio;
+      document.querySelectorAll(".vprev-preset").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      resetVprevOffset();
+      applyVprevRatio();
+    });
+  });
+
+  // Zoom in / out / reset
+  document.getElementById("vprevZoomIn").addEventListener("click", () => {
+    vprevZoom = Math.min(3, +(vprevZoom + 0.1).toFixed(1));
+    applyVprevRatio();
+  });
+  document.getElementById("vprevZoomOut").addEventListener("click", () => {
+    vprevZoom = Math.max(0.3, +(vprevZoom - 0.1).toFixed(1));
+    applyVprevRatio();
+  });
+  document.getElementById("vprevZoomReset").addEventListener("click", () => {
+    vprevZoom = 1;
+    applyVprevRatio();
+  });
+
+  // Recalculate on window resize
+  window.addEventListener("resize", () => {
+    if (document.getElementById("videoPreviewModal").classList.contains("open")) {
+      applyVprevRatio();
     }
   });
-  document
-    .getElementById("editVideoReSelectBtn")
-    .addEventListener("click", () => {
-      document.getElementById("editVideoFile").value = "";
-      document.getElementById("editVideoPreview").src = "";
-      document.getElementById("editVideoPreview").style.display = "none";
-      document.getElementById("editVideoReSelectBtn").style.display = "none";
-      document.getElementById("editVideoFile").click();
-    });
+
 
   document
     .getElementById("openAddVideoModal")
@@ -2210,6 +2301,7 @@ if (cropState.img && !cropState.croppedBlob) {
   document
     .getElementById("cancelVideoModal")
     .addEventListener("click", closeVideoModal);
+
 
   // ═══════════════════════════════════════════════════════════
   //  ADMIN — SUBSCRIBERS + CSV EXPORT (US-32) + EMAIL CAMPAIGN (US-33)
