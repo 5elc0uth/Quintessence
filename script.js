@@ -275,12 +275,23 @@ async function ensureSlideBackground(slide) {
   preloadCarouselImages(0);
 
   function goToSlide(n) {
-    slides[currentSlide].classList.remove("active");
-    dots[currentSlide] && dots[currentSlide].classList.remove("active");
-    currentSlide = (n + slides.length) % slides.length;
+    const prevIdx = currentSlide;
+    const nextIdx = (n + slides.length) % slides.length;
+    if (prevIdx === nextIdx) return;
+
+    // Mark leaving slide — CSS keeps it visible briefly at low opacity
+    slides[prevIdx].classList.remove("active");
+    slides[prevIdx].classList.add("leaving");
+    dots[prevIdx] && dots[prevIdx].classList.remove("active");
+
+    // Bring in next slide
+    currentSlide = nextIdx;
     slides[currentSlide].classList.add("active");
     dots[currentSlide] && dots[currentSlide].classList.add("active");
     preloadCarouselImages(currentSlide);
+
+    // Clean up leaving class after transition finishes
+    setTimeout(() => slides[prevIdx].classList.remove("leaving"), 1400);
   }
 
   function startCarousel() {
@@ -795,13 +806,18 @@ async function ensureSlideBackground(slide) {
   //  RENDER VIDEOS
   // ═══════════════════════════════════════════════════════════
   function renderVideos(videos) {
-    if (!videos || !videos.length) return;
+    const section = document.getElementById("videos");
+    if (!videos || !videos.length) {
+      if (section) section.style.display = "none";
+      return;
+    }
+    if (section) section.style.display = "";
     document.getElementById("videoGrid").innerHTML = videos
       .map(
         (v) => `
       <div class="video-wrap">
         <div class="video-box">
-          <video controls muted playsinline preload="none">
+          <video controls muted playsinline preload="metadata">
             <source src="${v.video_url}" type="video/mp4">
           </video>
         </div>
@@ -851,7 +867,12 @@ async function ensureSlideBackground(slide) {
         .from("videos")
         .select("*")
         .order("created_at", { ascending: false });
-      if (!ve && videos && videos.length > 0) renderVideos(videos);
+      if (!ve && videos && videos.length > 0) {
+        renderVideos(videos);
+      } else {
+        const vs = document.getElementById("videos");
+        if (vs) vs.style.display = "none";
+      }
     } catch (err) {
       console.warn("Data load failed:", err.message);
       renderEmptyState();
