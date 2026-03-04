@@ -1018,6 +1018,10 @@ async function ensureSlideBackground(slide) {
   document
     .getElementById("openAdminBtn")
     .addEventListener("click", openAdminOverlay);
+  // Mobile icon button (always visible on mobile nav)
+  document
+    .getElementById("openAdminBtnIcon")
+    ?.addEventListener("click", openAdminOverlay);
   document
     .getElementById("openAdminBtnMobile")
     ?.addEventListener("click", () => {
@@ -2334,8 +2338,10 @@ if (cropState.img && !cropState.croppedBlob) {
             document.getElementById("settingWhatsapp").value = map.whatsapp;
             applyWhatsapp(map.whatsapp);
           }
-          if (map.instagram)
+          if (map.instagram) {
             document.getElementById("settingInstagram").value = map.instagram;
+            applyInstagram(map.instagram);
+          }
           return;
         }
       } catch (e) {
@@ -2371,6 +2377,28 @@ if (cropState.img && !cropState.croppedBlob) {
     }
     if (ig) {
       document.getElementById("settingInstagram").value = ig;
+      applyInstagram(ig);
+    }
+  }
+
+  function applyInstagram(handle) {
+    if (!handle) return;
+    const clean = handle.replace(/^@/, "").trim();
+    if (!clean) return;
+    const url = `https://instagram.com/${clean}`;
+    // Footer contact Instagram link
+    const wrap = document.getElementById("footerInstagramWrap");
+    const link = document.getElementById("footerInstagramLink");
+    if (wrap && link) {
+      link.href = url;
+      link.textContent = `@${clean}`;
+      wrap.style.display = "block";
+    }
+    // Footer links column Instagram
+    const navIgLink = document.getElementById("footerNavInstagram");
+    if (navIgLink) {
+      navIgLink.href = url;
+      navIgLink.style.display = "block";
     }
   }
 
@@ -2447,6 +2475,7 @@ if (cropState.img && !cropState.croppedBlob) {
       }
       if (instagram) {
         localStorage.setItem("quint_stat_instagram", instagram);
+        applyInstagram(instagram);
       }
       if (db) {
         await Promise.all([
