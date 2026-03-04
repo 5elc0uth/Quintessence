@@ -361,6 +361,19 @@ async function ensureSlideBackground(slide) {
       revealObs.observe(el);
     });
 
+
+  // ═══════════════════════════════════════════════════════════
+  //  FAQ ACCORDION
+  // ═══════════════════════════════════════════════════════════
+  document.querySelectorAll('.faq-question').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const item   = btn.parentElement;
+      const isOpen = item.classList.contains('open');
+      document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('open'));
+      if (!isOpen) item.classList.add('open');
+    });
+  });
+
   // ── Cart persistence ───────────────────────────────────────
   function saveCart() {
     try {
@@ -1415,17 +1428,17 @@ document.getElementById("descTabFix")?.addEventListener("click", () => {
         const inStock = p.is_in_stock !== false;
         return `
       <tr>
-        <td><img src="${p.image_url || ""}" class="table-thumb" alt="${p.name}" onerror="this.style.display='none'"/></td>
-        <td><strong>${p.name}</strong></td>
-        <td>${p.category}</td>
-        <td>₦${Number(p.price).toLocaleString()}</td>
-        <td><span class="badge ${p.is_best_seller ? "badge-green" : "badge-grey"}">${p.is_best_seller ? "Yes" : "No"}</span></td>
-        <td>
+        <td data-label="Image"><img src="${p.image_url || ""}" class="table-thumb" alt="${p.name}" onerror="this.style.display='none'"/></td>
+        <td data-label="Name"><strong>${p.name}</strong></td>
+        <td data-label="Category">${p.category}</td>
+        <td data-label="Price">₦${Number(p.price).toLocaleString()}</td>
+        <td data-label="Best Seller"><span class="badge ${p.is_best_seller ? "badge-green" : "badge-grey"}">${p.is_best_seller ? "Yes" : "No"}</span></td>
+        <td data-label="Stock">
           <button class="stock-toggle-btn ${inStock ? "in-stock" : "out-stock"}" data-id="${p.id}" data-stock="${inStock}">
             ${inStock ? "✅ In Stock" : "❌ Out of Stock"}
           </button>
         </td>
-        <td class="actions-cell">
+        <td data-label="Actions" class="actions-cell">
           <div class="actions-cell-inner">
             <button class="action-btn edit-btn" data-id="${p.id}">✏️ Edit</button>
             <button class="action-btn delete-btn" data-id="${p.id}">🗑️ Delete</button>
@@ -1957,10 +1970,10 @@ if (cropState.img && !cropState.croppedBlob) {
       .map(
         (v) => `
       <tr>
-        <td><video src="${v.video_url}" class="table-video-thumb" muted preload="metadata"></video></td>
-        <td><strong>${v.title}</strong></td>
-        <td>${new Date(v.created_at).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}</td>
-        <td class="actions-cell"><div class="actions-cell-inner">
+        <td data-label="Preview"><video src="${v.video_url}" class="table-video-thumb" muted preload="metadata"></video></td>
+        <td data-label="Title"><strong>${v.title}</strong></td>
+        <td data-label="Added">${new Date(v.created_at).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}</td>
+        <td data-label="Actions" class="actions-cell"><div class="actions-cell-inner">
           <button class="action-btn edit-btn" data-id="${v.id}" data-title="${v.title.replace(/"/g, "&quot;")}">✏️ Edit</button>
           <button class="action-btn delete-btn" data-id="${v.id}">🗑️ Delete</button>
         </div></td>
@@ -2199,7 +2212,7 @@ if (cropState.img && !cropState.croppedBlob) {
     tbody.innerHTML = subscriberData
       .map(
         (s) =>
-          `<tr><td>${s.email}</td><td>${new Date(s.created_at).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}</td></tr>`,
+          `<tr><td data-label="Email">${s.email}</td><td data-label="Date Subscribed">${new Date(s.created_at).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}</td></tr>`,
       )
       .join("");
   }

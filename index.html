@@ -4,6 +4,30 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Quintessence | Premium Perfumes</title>
+    <meta
+      name="description"
+      content="Quintessence — Premium perfumes, body mists, oils and sprays in Kaduna, Nigeria. Shop now and enquire via WhatsApp."
+    />
+    <meta
+      name="keywords"
+      content="perfume Nigeria, body mist Kaduna, perfume oils, body spray, baby cologne, bloom butter, incense, Quintessence"
+    />
+    <meta property="og:title" content="Quintessence | Premium Perfumes" />
+    <meta
+      property="og:description"
+      content="Premium fragrances crafted to leave a lasting impression. Shop perfume oils, body sprays, mists and more — delivered across Nigeria."
+    />
+    <meta property="og:image" content="assets/quint_img_allstar.jpg" />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="en_NG" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Quintessence | Premium Perfumes" />
+    <meta
+      name="twitter:description"
+      content="Premium fragrances crafted to leave a lasting impression. Shop now and enquire via WhatsApp."
+    />
+    <meta name="twitter:image" content="assets/quint_img_allstar.jpg" />
+    <meta name="theme-color" content="#c4587a" />
     <link rel="stylesheet" href="style.css" />
     <link rel="icon" href="assets/favicon.png" />
     <link
@@ -518,20 +542,10 @@
     </section>
 
     <!-- FAQ -->
-    <script>
-      function toggleFaq(btn) {
-        var item = btn.parentElement;
-        var isOpen = item.classList.contains("open");
-        document.querySelectorAll(".faq-item").forEach(function (i) {
-          i.classList.remove("open");
-        });
-        if (!isOpen) item.classList.add("open");
-      }
-    </script>
     <div class="faq-section">
       <h2>Common Questions</h2>
       <div class="faq-item">
-        <button class="faq-question" onclick="toggleFaq(this)">
+        <button class="faq-question">
           How long does the scent last? <span class="faq-arrow">+</span>
         </button>
         <div class="faq-answer">
@@ -540,7 +554,7 @@
         </div>
       </div>
       <div class="faq-item">
-        <button class="faq-question" onclick="toggleFaq(this)">
+        <button class="faq-question">
           Do you deliver nationwide? <span class="faq-arrow">+</span>
         </button>
         <div class="faq-answer">
@@ -549,7 +563,7 @@
         </div>
       </div>
       <div class="faq-item">
-        <button class="faq-question" onclick="toggleFaq(this)">
+        <button class="faq-question">
           How do I pay? <span class="faq-arrow">+</span>
         </button>
         <div class="faq-answer">
@@ -558,7 +572,7 @@
         </div>
       </div>
       <div class="faq-item">
-        <button class="faq-question" onclick="toggleFaq(this)">
+        <button class="faq-question">
           Can I return a product? <span class="faq-arrow">+</span>
         </button>
         <div class="faq-answer">
@@ -841,27 +855,27 @@
             </div>
             <div class="admin-table-wrap">
               <div class="admin-table-wrapper">
-<table class="admin-table">
-                <thead>
-                  <tr>
-                    <th>Image</th>
-                    <th>Name</th>
-                    <th>Category</th>
-                    <th>Price</th>
-                    <th>Best Seller</th>
-                    <th>Stock</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody id="productsTableBody">
-                  <tr>
-                    <td colspan="7" class="loading-cell">
-                      Loading products...
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-</div>
+                <table class="admin-table">
+                  <thead>
+                    <tr>
+                      <th>Image</th>
+                      <th>Name</th>
+                      <th>Category</th>
+                      <th>Price</th>
+                      <th>Best Seller</th>
+                      <th>Stock</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="productsTableBody">
+                    <tr>
+                      <td colspan="7" class="loading-cell">
+                        Loading products...
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
           <!-- VIDEOS TAB -->
