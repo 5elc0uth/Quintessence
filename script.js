@@ -169,82 +169,86 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  
-// Compute a simple average color from the slide background image so the card/overlay can blend.
-const _slideThemeCache = new Map();
+  // Compute a simple average color from the slide background image so the card/overlay can blend.
+  const _slideThemeCache = new Map();
 
-async function computeSlideTheme(assetPath) {
-  if (!assetPath) return null;
-  if (_slideThemeCache.has(assetPath)) return _slideThemeCache.get(assetPath);
+  async function computeSlideTheme(assetPath) {
+    if (!assetPath) return null;
+    if (_slideThemeCache.has(assetPath)) return _slideThemeCache.get(assetPath);
 
-  const themePromise = new Promise((resolve) => {
-    const img = new Image();
-    img.crossOrigin = "anonymous";
-    img.onload = () => {
-      try {
-        const c = document.createElement("canvas");
-        const ctx = c.getContext("2d", { willReadFrequently: true });
-        const W = 32, H = 32;
-        c.width = W; c.height = H;
-        ctx.drawImage(img, 0, 0, W, H);
-        const data = ctx.getImageData(0, 0, W, H).data;
+    const themePromise = new Promise((resolve) => {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => {
+        try {
+          const c = document.createElement("canvas");
+          const ctx = c.getContext("2d", { willReadFrequently: true });
+          const W = 32,
+            H = 32;
+          c.width = W;
+          c.height = H;
+          ctx.drawImage(img, 0, 0, W, H);
+          const data = ctx.getImageData(0, 0, W, H).data;
 
-        let r = 0, g = 0, b = 0, n = 0;
-        for (let i = 0; i < data.length; i += 4) {
-          const a = data[i + 3];
-          if (a < 40) continue; // ignore near-transparent pixels
-          r += data[i];
-          g += data[i + 1];
-          b += data[i + 2];
-          n++;
+          let r = 0,
+            g = 0,
+            b = 0,
+            n = 0;
+          for (let i = 0; i < data.length; i += 4) {
+            const a = data[i + 3];
+            if (a < 40) continue; // ignore near-transparent pixels
+            r += data[i];
+            g += data[i + 1];
+            b += data[i + 2];
+            n++;
+          }
+          if (!n) return resolve(null);
+
+          r = Math.round(r / n);
+          g = Math.round(g / n);
+          b = Math.round(b / n);
+
+          // Perceived luminance to decide text contrast
+          const luminance = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+          const isDark = luminance < 0.55;
+
+          resolve({ r, g, b, isDark });
+        } catch (e) {
+          resolve(null);
         }
-        if (!n) return resolve(null);
+      };
+      img.onerror = () => resolve(null);
+      img.src = assetPath;
+    });
 
-        r = Math.round(r / n);
-        g = Math.round(g / n);
-        b = Math.round(b / n);
-
-        // Perceived luminance to decide text contrast
-        const luminance = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
-        const isDark = luminance < 0.55;
-
-        resolve({ r, g, b, isDark });
-      } catch (e) {
-        resolve(null);
-      }
-    };
-    img.onerror = () => resolve(null);
-    img.src = assetPath;
-  });
-
-  _slideThemeCache.set(assetPath, themePromise);
-  return themePromise;
-}
-
-function applySlideTheme(slide, theme) {
-  if (!slide || !theme) return;
-
-  const overlay = slide.querySelector(".hero-overlay");
-  const card = slide.querySelector(".overlay");
-  if (!overlay || !card) return;
-
-  // Blend the backdrop and the message card using the image's average color.
-  overlay.style.background = `rgba(${theme.r}, ${theme.g}, ${theme.b}, 0.45)`;
-
-  // Use a tinted glass card for uniform look across slides.
-  card.style.background = `rgba(${theme.r}, ${theme.g}, ${theme.b}, 0.72)`;
-  card.style.backdropFilter = "blur(10px)";
-  card.style.webkitBackdropFilter = "blur(10px)";
-
-  // Ensure readable text
-  if (theme.isDark) {
-    card.classList.add("overlay-dark");
-  } else {
-    card.classList.remove("overlay-dark");
+    _slideThemeCache.set(assetPath, themePromise);
+    return themePromise;
   }
-}
 
-async function ensureSlideBackground(slide) {
+  function applySlideTheme(slide, theme) {
+    if (!slide || !theme) return;
+
+    const overlay = slide.querySelector(".hero-overlay");
+    const card = slide.querySelector(".overlay");
+    if (!overlay || !card) return;
+
+    // Blend the backdrop and the message card using the image's average color.
+    overlay.style.background = `rgba(${theme.r}, ${theme.g}, ${theme.b}, 0.45)`;
+
+    // Use a tinted glass card for uniform look across slides.
+    card.style.background = `rgba(${theme.r}, ${theme.g}, ${theme.b}, 0.72)`;
+    card.style.backdropFilter = "blur(10px)";
+    card.style.webkitBackdropFilter = "blur(10px)";
+
+    // Ensure readable text
+    if (theme.isDark) {
+      card.classList.add("overlay-dark");
+    } else {
+      card.classList.remove("overlay-dark");
+    }
+  }
+
+  async function ensureSlideBackground(slide) {
     if (!slide || slide.dataset.bgLoaded === "1") return;
 
     const base = slide.dataset.bg;
@@ -305,14 +309,49 @@ async function ensureSlideBackground(slide) {
     startCarousel();
   }
 
-  document.getElementById("carouselPrev").addEventListener("click", () => {
+  const heroPrev = document.getElementById("carouselPrev");
+  const heroNext = document.getElementById("carouselNext");
+
+  heroPrev.addEventListener("click", () => {
     goToSlide(currentSlide - 1);
     resetCarousel();
+    showHeroArrows();
   });
-  document.getElementById("carouselNext").addEventListener("click", () => {
+  heroNext.addEventListener("click", () => {
     goToSlide(currentSlide + 1);
     resetCarousel();
+    showHeroArrows();
   });
+
+  // Smart arrow visibility: fade out after idle, reappear on hover/touch
+  let heroArrowTimer = null;
+  function showHeroArrows() {
+    heroPrev.style.opacity = "1";
+    heroPrev.style.visibility = "visible";
+    heroNext.style.opacity = "1";
+    heroNext.style.visibility = "visible";
+    clearTimeout(heroArrowTimer);
+    heroArrowTimer = setTimeout(fadeHeroArrows, 2800);
+  }
+  function fadeHeroArrows() {
+    heroPrev.style.opacity = "0";
+    heroPrev.style.visibility = "hidden";
+    heroNext.style.opacity = "0";
+    heroNext.style.visibility = "hidden";
+  }
+  // Start hidden, appear on hero hover
+  fadeHeroArrows();
+  const heroSection = document.querySelector(".hero");
+  if (heroSection) {
+    heroSection.addEventListener("mouseenter", showHeroArrows);
+    heroSection.addEventListener("mouseleave", () => {
+      clearTimeout(heroArrowTimer);
+      heroArrowTimer = setTimeout(fadeHeroArrows, 800);
+    });
+    heroSection.addEventListener("touchstart", showHeroArrows, {
+      passive: true,
+    });
+  }
   dots.forEach((dot) =>
     dot.addEventListener("click", () => {
       goToSlide(+dot.dataset.index);
@@ -344,15 +383,78 @@ async function ensureSlideBackground(slide) {
   if (slides.length > 1) startCarousel();
 
   // ═══════════════════════════════════════════════════════════
-  //  BEST SELLERS CAROUSEL ARROWS
+  //  CAROUSEL ARROW HELPER — hide/show based on scroll position
   // ═══════════════════════════════════════════════════════════
+  function syncArrows(carousel, prevBtn, nextBtn) {
+    const THRESHOLD = 8; // px tolerance for floating point
+    const atStart = carousel.scrollLeft <= THRESHOLD;
+    const atEnd =
+      carousel.scrollLeft + carousel.clientWidth >=
+      carousel.scrollWidth - THRESHOLD;
+    prevBtn.style.visibility = atStart ? "hidden" : "visible";
+    prevBtn.style.opacity = atStart ? "0" : "1";
+    nextBtn.style.visibility = atEnd ? "hidden" : "visible";
+    nextBtn.style.opacity = atEnd ? "0" : "1";
+  }
+
+  function initCarousel(carouselId, prevId, nextId, step) {
+    const carousel = document.getElementById(carouselId);
+    const prevBtn = document.getElementById(prevId);
+    const nextBtn = document.getElementById(nextId);
+    if (!carousel || !prevBtn || !nextBtn) return;
+
+    prevBtn.addEventListener("click", () => {
+      carousel.scrollBy({ left: -step, behavior: "smooth" });
+    });
+    nextBtn.addEventListener("click", () => {
+      carousel.scrollBy({ left: step, behavior: "smooth" });
+    });
+
+    // Update arrows on scroll (throttled with requestAnimationFrame)
+    let ticking = false;
+    carousel.addEventListener(
+      "scroll",
+      () => {
+        if (!ticking) {
+          requestAnimationFrame(() => {
+            syncArrows(carousel, prevBtn, nextBtn);
+            ticking = false;
+          });
+          ticking = true;
+        }
+      },
+      { passive: true },
+    );
+
+    // Initial state — prev hidden at start, check if next needed
+    syncArrows(carousel, prevBtn, nextBtn);
+
+    // Re-sync after images load (content may shift)
+    window.addEventListener("load", () =>
+      syncArrows(carousel, prevBtn, nextBtn),
+    );
+
+    return { carousel, prevBtn, nextBtn };
+  }
+
+  // Best Sellers carousel
   const bsCarousel = document.getElementById("bestSellersCarousel");
-  document.getElementById("bsPrev").addEventListener("click", () => {
-    bsCarousel.scrollBy({ left: -240, behavior: "smooth" });
-  });
-  document.getElementById("bsNext").addEventListener("click", () => {
-    bsCarousel.scrollBy({ left: 240, behavior: "smooth" });
-  });
+  initCarousel("bestSellersCarousel", "bsPrev", "bsNext", 240);
+
+  // Products carousel
+  const prodCarousel = document.getElementById("productGrid");
+  initCarousel("productGrid", "prodPrev", "prodNext", 220);
+
+  // Testimonials carousel
+  initCarousel("testimonialGrid", "tPrev", "tNext", 300);
+
+  // Re-sync product arrows whenever products are re-rendered (filter/search)
+  const _origSyncProd = () => {
+    const p = document.getElementById("productGrid");
+    const pv = document.getElementById("prodPrev");
+    const nx = document.getElementById("prodNext");
+    if (p && pv && nx) setTimeout(() => syncArrows(p, pv, nx), 100);
+  };
 
   // ═══════════════════════════════════════════════════════════
   //  SCROLL REVEAL
@@ -372,16 +474,17 @@ async function ensureSlideBackground(slide) {
       revealObs.observe(el);
     });
 
-
   // ═══════════════════════════════════════════════════════════
   //  FAQ ACCORDION
   // ═══════════════════════════════════════════════════════════
-  document.querySelectorAll('.faq-question').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const item   = btn.parentElement;
-      const isOpen = item.classList.contains('open');
-      document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('open'));
-      if (!isOpen) item.classList.add('open');
+  document.querySelectorAll(".faq-question").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const item = btn.parentElement;
+      const isOpen = item.classList.contains("open");
+      document
+        .querySelectorAll(".faq-item")
+        .forEach((i) => i.classList.remove("open"));
+      if (!isOpen) item.classList.add("open");
     });
   });
 
@@ -649,8 +752,20 @@ async function ensureSlideBackground(slide) {
   function renderProducts(products, filter = "all", search = "") {
     const grid = document.getElementById("productGrid");
     const bar = document.getElementById("productFilter");
-    const cats = ["all", ...new Set(products.map((p) => p.category))];
+    const section = document.getElementById("products");
 
+    // Strip hidden products first — visible-only drives everything
+    const visible = products.filter((p) => !p.is_hidden);
+
+    // If nothing visible at all, hide the whole section
+    if (!visible.length) {
+      if (section) section.style.display = "none";
+      return;
+    }
+    if (section) section.style.display = "";
+
+    // Build filter tabs from visible products only
+    const cats = ["all", ...new Set(visible.map((p) => p.category))];
     bar.innerHTML = cats
       .map(
         (c) =>
@@ -664,10 +779,9 @@ async function ensureSlideBackground(slide) {
       }),
     );
 
+    // Filter by category and search from the visible list
     let list =
-      filter === "all"
-        ? products
-        : products.filter((p) => p.category === filter);
+      filter === "all" ? visible : visible.filter((p) => p.category === filter);
 
     // Search filter (US-19)
     const q = search.trim().toLowerCase();
@@ -688,7 +802,7 @@ async function ensureSlideBackground(slide) {
         emptyEl.style.display = "block";
         emptyTerm.textContent = q;
       } else {
-        grid.innerHTML = `<p style="grid-column:1/-1;text-align:center;color:#bbb;padding:2rem;">No products in this category yet.</p>`;
+        grid.innerHTML = `<div style="padding:2rem 1rem;text-align:center;color:#c084a0;font-size:0.92rem;opacity:0.7;">No products in this category.</div>`;
         emptyEl.style.display = "none";
       }
       return;
@@ -722,8 +836,11 @@ async function ensureSlideBackground(slide) {
         openProductModal(list[i]);
       });
       card.addEventListener("click", () => openProductModal(list[i]));
-      setTimeout(() => card.classList.add("reveal", "visible"), i * 60);
+      setTimeout(() => card.classList.add("reveal", "visible"), i * 40);
     });
+
+    // Re-sync product arrows after render (card count may change with filters)
+    if (typeof _origSyncProd === "function") _origSyncProd();
   }
 
   // ── Product search events ──────────────────────────────────
@@ -752,7 +869,7 @@ async function ensureSlideBackground(slide) {
   //  RENDER BEST SELLERS
   // ═══════════════════════════════════════════════════════════
   function renderBestSellers(products) {
-    const sellers = products.filter((p) => p.is_best_seller);
+    const sellers = products.filter((p) => p.is_best_seller && !p.is_hidden);
     const section = document.querySelector(".best-sellers");
     const el = document.getElementById("bestSellersCarousel");
     if (!sellers.length) {
@@ -814,7 +931,12 @@ async function ensureSlideBackground(slide) {
       return;
     }
     if (section) section.style.display = "";
-    document.getElementById("videoGrid").innerHTML = videos
+    const visibleVideos = videos.filter((v) => !v.is_hidden);
+    if (!visibleVideos.length) {
+      if (section) section.style.display = "none";
+      return;
+    }
+    document.getElementById("videoGrid").innerHTML = visibleVideos
       .map(
         (v) => `
       <div class="video-wrap">
@@ -827,18 +949,21 @@ async function ensureSlideBackground(slide) {
       </div>`,
       )
       .join("");
+
+    // Restore persisted aspect ratio (survives page refresh)
+    try {
+      const saved = localStorage.getItem("qVideoRatio");
+      if (saved && ASPECT_RATIOS[saved]) applyVideoRatioToSite(saved);
+    } catch (e) {}
   }
 
   // ═══════════════════════════════════════════════════════════
   //  EMPTY STATE
   // ═══════════════════════════════════════════════════════════
   function renderEmptyState() {
-    document.getElementById("productGrid").innerHTML = `
-      <div style="grid-column:1/-1;text-align:center;padding:3rem 1rem;">
-        <p style="font-size:2rem;">🛍️</p>
-        <p style="color:#bbb;margin-top:0.5rem;">No products yet.</p>
-        <p style="color:#ccc;font-size:0.85rem;margin-top:0.3rem;">Add products from the Admin Panel.</p>
-      </div>`;
+    // Hide the products section entirely — no placeholder shown to customers
+    const productSection = document.getElementById("products");
+    if (productSection) productSection.style.display = "none";
     const bsSection = document.querySelector(".best-sellers");
     if (bsSection) bsSection.style.display = "none";
   }
@@ -947,6 +1072,12 @@ async function ensureSlideBackground(slide) {
         grid.appendChild(card);
         addDeleteBtn(card, true, r.id);
       });
+      // Re-sync arrows after reviews load
+      setTimeout(() => {
+        const tPrev = document.getElementById("tPrev");
+        const tNext = document.getElementById("tNext");
+        if (grid && tPrev && tNext) syncArrows(grid, tPrev, tNext);
+      }, 150);
     } catch (e) {
       console.warn("Reviews:", e.message);
     }
@@ -982,6 +1113,12 @@ async function ensureSlideBackground(slide) {
           revealObs.observe(card);
           grid.insertBefore(card, grid.firstChild);
           addDeleteBtn(card, true, data.id);
+          // Re-sync arrows after new card added
+          setTimeout(() => {
+            const tPrev = document.getElementById("tPrev");
+            const tNext = document.getElementById("tNext");
+            if (tPrev && tNext) syncArrows(grid, tPrev, tNext);
+          }, 150);
         }
       }
 
@@ -1198,161 +1335,167 @@ async function ensureSlideBackground(slide) {
     return pool[Math.abs(hash) % pool.length];
   }
 
-// ── Description Helper (AI / Fix) ──────────────────────────
-function setDescHelperTab(tab) {
-  const aiBtn = document.getElementById("descTabAi");
-  const fixBtn = document.getElementById("descTabFix");
-  const aiPanel = document.getElementById("descPanelAi");
-  const fixPanel = document.getElementById("descPanelFix");
-  if (tab === "fix") {
-    aiBtn.classList.remove("active");
-    fixBtn.classList.add("active");
-    aiPanel.style.display = "none";
-    fixPanel.style.display = "block";
-  } else {
-    fixBtn.classList.remove("active");
-    aiBtn.classList.add("active");
-    fixPanel.style.display = "none";
-    aiPanel.style.display = "block";
-  }
-}
-
-function closeDescHelperModal() {
-  document.getElementById("descHelperModal").classList.remove("open");
-}
-
-document.getElementById("closeDescHelperModal")?.addEventListener("click", closeDescHelperModal);
-document.getElementById("descTabAi")?.addEventListener("click", () => setDescHelperTab("ai"));
-document.getElementById("descTabFix")?.addEventListener("click", () => setDescHelperTab("fix"));
-
-// Optional: allow ESC to close (doesn't affect Add Product modal)
-document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape") closeDescHelperModal();
-});
-
-async function runAiDescriptionDraft() {
-  const name = document.getElementById("productName").value.trim();
-  const rawCat = document.getElementById("productCategory").value;
-  const category =
-    rawCat === "__other__"
-      ? document.getElementById("productCategoryCustom").value.trim() ||
-        "fragrance product"
-      : rawCat;
-
-  if (!name && !category) {
-    showToast("Enter a product name or category first.", "error");
-    return;
-  }
-
-  const btn = document.getElementById("descAiGenerateBtn");
-  const status = document.getElementById("descAiStatus");
-  const draft = document.getElementById("descAiDraft");
-
-  btn.disabled = true;
-  btn.textContent = "⏳ Generating…";
-  status.textContent = "";
-  status.style.color = "";
-
-  try {
-    const res = await fetch(AI_FUNCTION_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${SUPABASE_ANON}`,
-      },
-      body: JSON.stringify({ name, category }),
-    });
-
-    const data = await res.json();
-
-    if (data.description) {
-      draft.value = data.description;
-      status.textContent = "✓ AI Generated";
-      status.style.color = "#2e7d32";
+  // ── Description Helper (AI / Fix) ──────────────────────────
+  function setDescHelperTab(tab) {
+    const aiBtn = document.getElementById("descTabAi");
+    const fixBtn = document.getElementById("descTabFix");
+    const aiPanel = document.getElementById("descPanelAi");
+    const fixPanel = document.getElementById("descPanelFix");
+    if (tab === "fix") {
+      aiBtn.classList.remove("active");
+      fixBtn.classList.add("active");
+      aiPanel.style.display = "none";
+      fixPanel.style.display = "block";
     } else {
-      const errMsg = data.error || "No description returned";
-      console.error("AI Generation error:", errMsg);
-      if (data.raw) console.error("AI raw response:", data.raw);
+      fixBtn.classList.remove("active");
+      aiBtn.classList.add("active");
+      fixPanel.style.display = "none";
+      aiPanel.style.display = "block";
+    }
+  }
+
+  function closeDescHelperModal() {
+    document.getElementById("descHelperModal").classList.remove("open");
+  }
+
+  document
+    .getElementById("closeDescHelperModal")
+    ?.addEventListener("click", closeDescHelperModal);
+  document
+    .getElementById("descTabAi")
+    ?.addEventListener("click", () => setDescHelperTab("ai"));
+  document
+    .getElementById("descTabFix")
+    ?.addEventListener("click", () => setDescHelperTab("fix"));
+
+  // Optional: allow ESC to close (doesn't affect Add Product modal)
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeDescHelperModal();
+  });
+
+  async function runAiDescriptionDraft() {
+    const name = document.getElementById("productName").value.trim();
+    const rawCat = document.getElementById("productCategory").value;
+    const category =
+      rawCat === "__other__"
+        ? document.getElementById("productCategoryCustom").value.trim() ||
+          "fragrance product"
+        : rawCat;
+
+    if (!name && !category) {
+      showToast("Enter a product name or category first.", "error");
+      return;
+    }
+
+    const btn = document.getElementById("descAiGenerateBtn");
+    const status = document.getElementById("descAiStatus");
+    const draft = document.getElementById("descAiDraft");
+
+    btn.disabled = true;
+    btn.textContent = "⏳ Generating…";
+    status.textContent = "";
+    status.style.color = "";
+
+    try {
+      const res = await fetch(AI_FUNCTION_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${SUPABASE_ANON}`,
+        },
+        body: JSON.stringify({ name, category }),
+      });
+
+      const data = await res.json();
+
+      if (data.description) {
+        draft.value = data.description;
+        status.textContent = "✓ AI Generated";
+        status.style.color = "#2e7d32";
+      } else {
+        const errMsg = data.error || "No description returned";
+        console.error("AI Generation error:", errMsg);
+        if (data.raw) console.error("AI raw response:", data.raw);
+        const fallback = getAutoDescription(name, category);
+        if (fallback) {
+          draft.value = fallback;
+          status.textContent = "AI unavailable — used template";
+          status.style.color = "#e65100";
+          status.title = errMsg;
+        } else {
+          showToast("AI error: " + errMsg.slice(0, 120), "error");
+        }
+      }
+    } catch (err) {
+      console.error("AI fetch error:", err.message);
       const fallback = getAutoDescription(name, category);
       if (fallback) {
         draft.value = fallback;
-        status.textContent = "AI unavailable — used template";
-        status.style.color = "#e65100";
-        status.title = errMsg;
+        status.textContent = "Using template (AI service unreachable)";
+        status.style.color = "#888";
       } else {
-        showToast("AI error: " + errMsg.slice(0, 120), "error");
+        showToast("AI service unreachable.", "error");
       }
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "Generate";
+      setTimeout(() => {
+        status.textContent = "";
+        status.style.color = "";
+      }, 5000);
     }
-  } catch (err) {
-    console.error("AI fetch error:", err.message);
-    const fallback = getAutoDescription(name, category);
-    if (fallback) {
-      draft.value = fallback;
-      status.textContent = "Using template (AI service unreachable)";
-      status.style.color = "#888";
-    } else {
-      showToast("AI service unreachable.", "error");
-    }
-  } finally {
-    btn.disabled = false;
-    btn.textContent = "Generate";
-    setTimeout(() => {
-      status.textContent = "";
-      status.style.color = "";
-    }, 5000);
   }
-}
 
-document.getElementById("descAiGenerateBtn")?.addEventListener("click", runAiDescriptionDraft);
+  document
+    .getElementById("descAiGenerateBtn")
+    ?.addEventListener("click", runAiDescriptionDraft);
 
-// Apply AI draft to main description
-document.getElementById("descApplyAiBtn")?.addEventListener("click", () => {
-  const draft = document.getElementById("descAiDraft").value.trim();
-  if (!draft) return showToast("Nothing to apply yet.", "error");
-  const descEl = document.getElementById("productDesc");
-  descEl.value = draft;
-  descEl.dataset.autoFilled = "false";
-  document.getElementById("aiDescStatus").textContent = "✓ Applied";
-  document.getElementById("aiDescStatus").style.color = "#2e7d32";
-  setTimeout(() => {
-    document.getElementById("aiDescStatus").textContent = "";
-    document.getElementById("aiDescStatus").style.color = "";
-  }, 2500);
-  closeDescHelperModal();
-});
+  // Apply AI draft to main description
+  document.getElementById("descApplyAiBtn")?.addEventListener("click", () => {
+    const draft = document.getElementById("descAiDraft").value.trim();
+    if (!draft) return showToast("Nothing to apply yet.", "error");
+    const descEl = document.getElementById("productDesc");
+    descEl.value = draft;
+    descEl.dataset.autoFilled = "false";
+    document.getElementById("aiDescStatus").textContent = "✓ Applied";
+    document.getElementById("aiDescStatus").style.color = "#2e7d32";
+    setTimeout(() => {
+      document.getElementById("aiDescStatus").textContent = "";
+      document.getElementById("aiDescStatus").style.color = "";
+    }, 2500);
+    closeDescHelperModal();
+  });
 
-// Fix: lightweight cleanup (no external calls)
-function fixDescriptionText(text) {
-  let t = (text || "").trim();
-  if (!t) return "";
-  t = t.replace(/\s+/g, " ");            // collapse whitespace
-  t = t.replace(/\s+([,.;:!?])/g, "$1"); // remove space before punctuation
-  t = t.replace(/([,.;:!?])(\S)/g, "$1 $2"); // ensure space after punctuation
-  // Sentence casing: capitalize first character only (avoid changing brand names)
-  t = t.charAt(0).toUpperCase() + t.slice(1);
-  // Ensure ends with punctuation
-  if (!/[.!?]$/.test(t)) t += ".";
-  return t;
-}
+  // Fix: lightweight cleanup (no external calls)
+  function fixDescriptionText(text) {
+    let t = (text || "").trim();
+    if (!t) return "";
+    t = t.replace(/\s+/g, " "); // collapse whitespace
+    t = t.replace(/\s+([,.;:!?])/g, "$1"); // remove space before punctuation
+    t = t.replace(/([,.;:!?])(\S)/g, "$1 $2"); // ensure space after punctuation
+    // Sentence casing: capitalize first character only (avoid changing brand names)
+    t = t.charAt(0).toUpperCase() + t.slice(1);
+    // Ensure ends with punctuation
+    if (!/[.!?]$/.test(t)) t += ".";
+    return t;
+  }
 
-document.getElementById("descApplyFixBtn")?.addEventListener("click", () => {
-  const draftEl = document.getElementById("descFixDraft");
-  const fixed = fixDescriptionText(draftEl.value);
-  if (!fixed) return showToast("Nothing to fix.", "error");
-  const descEl = document.getElementById("productDesc");
-  descEl.value = fixed;
-  descEl.dataset.autoFilled = "false";
-  closeDescHelperModal();
-});
+  document.getElementById("descApplyFixBtn")?.addEventListener("click", () => {
+    const draftEl = document.getElementById("descFixDraft");
+    const fixed = fixDescriptionText(draftEl.value);
+    if (!fixed) return showToast("Nothing to fix.", "error");
+    const descEl = document.getElementById("productDesc");
+    descEl.value = fixed;
+    descEl.dataset.autoFilled = "false";
+    closeDescHelperModal();
+  });
 
-// When opening helper modal, keep fix draft in sync if user switches tabs
-document.getElementById("descTabFix")?.addEventListener("click", () => {
-  const current = document.getElementById("productDesc").value || "";
-  const fixDraft = document.getElementById("descFixDraft");
-  if (!fixDraft.value) fixDraft.value = current.trim();
-});
-
-
+  // When opening helper modal, keep fix draft in sync if user switches tabs
+  document.getElementById("descTabFix")?.addEventListener("click", () => {
+    const current = document.getElementById("productDesc").value || "";
+    const fixDraft = document.getElementById("descFixDraft");
+    if (!fixDraft.value) fixDraft.value = current.trim();
+  });
 
   function maybeAutoFillDesc() {
     const name = document.getElementById("productName").value.trim();
@@ -1426,6 +1569,8 @@ document.getElementById("descTabFix")?.addEventListener("click", () => {
   let editingProductId = null;
 
   async function loadAdminProducts() {
+    const adminMain = document.querySelector(".admin-main");
+    const scrollTop = adminMain ? adminMain.scrollTop : 0;
     const tbody = document.getElementById("productsTableBody");
     tbody.innerHTML =
       '<tr><td colspan="7" class="loading-cell">Loading…</td></tr>';
@@ -1435,11 +1580,13 @@ document.getElementById("descTabFix")?.addEventListener("click", () => {
       .order("created_at", { ascending: false });
     if (error) {
       tbody.innerHTML = `<tr><td colspan="7" class="error-cell">${error.message}</td></tr>`;
+      if (adminMain) adminMain.scrollTop = scrollTop;
       return;
     }
     if (!data.length) {
       tbody.innerHTML =
         '<tr><td colspan="7" class="loading-cell">No products yet. Click "+ Add Product".</td></tr>';
+      if (adminMain) adminMain.scrollTop = scrollTop;
       return;
     }
     tbody.innerHTML = data
@@ -1460,6 +1607,7 @@ document.getElementById("descTabFix")?.addEventListener("click", () => {
         <td data-label="Actions" class="actions-cell">
           <div class="actions-cell-inner">
             <button class="action-btn edit-btn" data-id="${p.id}">✏️ Edit</button>
+            <button class="action-btn hide-btn ${p.is_hidden ? "hidden-active" : ""}" data-id="${p.id}" data-hidden="${!!p.is_hidden}">${p.is_hidden ? "👁️ Show" : "🙈 Hide"}</button>
             <button class="action-btn delete-btn" data-id="${p.id}">🗑️ Delete</button>
           </div>
         </td>
@@ -1478,6 +1626,14 @@ document.getElementById("descTabFix")?.addEventListener("click", () => {
       .querySelectorAll(".delete-btn")
       .forEach((btn) =>
         btn.addEventListener("click", () => deleteProduct(btn.dataset.id)),
+      );
+
+    tbody
+      .querySelectorAll(".hide-btn")
+      .forEach((btn) =>
+        btn.addEventListener("click", () =>
+          toggleHideProduct(btn.dataset.id, btn.dataset.hidden === "true"),
+        ),
       );
 
     // US-20/US-35: Stock toggle in admin
@@ -1506,6 +1662,12 @@ document.getElementById("descTabFix")?.addEventListener("click", () => {
         loadData();
       }),
     );
+
+    // Restore scroll position in admin-main after table re-render
+    if (adminMain)
+      requestAnimationFrame(() => {
+        adminMain.scrollTop = scrollTop;
+      });
   }
 
   document
@@ -1615,7 +1777,8 @@ document.getElementById("descTabFix")?.addEventListener("click", () => {
           const blob = await res.blob();
           const objUrl = URL.createObjectURL(blob);
           // Keep reference to revoke later
-          cropState._resolvedObjectUrl && URL.revokeObjectURL(cropState._resolvedObjectUrl);
+          cropState._resolvedObjectUrl &&
+            URL.revokeObjectURL(cropState._resolvedObjectUrl);
           cropState._resolvedObjectUrl = objUrl;
           return objUrl;
         } catch (e) {
@@ -1656,7 +1819,10 @@ document.getElementById("descTabFix")?.addEventListener("click", () => {
 
       img.onerror = () => {
         cropState = { ...cropState, img: null, croppedBlob: null };
-        showToast("Couldn't load this image for editing. Please try another image.", "error");
+        showToast(
+          "Couldn't load this image for editing. Please try another image.",
+          "error",
+        );
       };
 
       img.src = resolved;
@@ -1754,7 +1920,8 @@ document.getElementById("descTabFix")?.addEventListener("click", () => {
           document.getElementById("imagePreview").src = url;
           document.getElementById("imagePreview").style.display = "block";
           document.getElementById("imageCropWrap").style.display = "none";
-          const __applyRow = document.getElementById("cropApplyRow"); if (__applyRow) __applyRow.style.display = "none";
+          const __applyRow = document.getElementById("cropApplyRow");
+          if (__applyRow) __applyRow.style.display = "none";
         },
         "image/jpeg",
         0.88,
@@ -1771,7 +1938,11 @@ document.getElementById("descTabFix")?.addEventListener("click", () => {
   document.getElementById("cropReEditBtn").addEventListener("click", () => {
     const wrap = document.getElementById("imageCropWrap");
     const preview = document.getElementById("imagePreview");
-    const src = (document.getElementById("existingImageUrl").value || preview.src || "").trim();
+    const src = (
+      document.getElementById("existingImageUrl").value ||
+      preview.src ||
+      ""
+    ).trim();
     wrap.style.display = "block";
     preview.style.display = "none";
     document.getElementById("cropReEditBtn").style.display = "none";
@@ -1779,7 +1950,7 @@ document.getElementById("descTabFix")?.addEventListener("click", () => {
     if (src) initCropCanvas(src);
   });
 
-// Product video preview
+  // Product video preview
   document
     .getElementById("productVideoFile")
     .addEventListener("change", (e) => {
@@ -1825,31 +1996,32 @@ document.getElementById("descTabFix")?.addEventListener("click", () => {
       // Auto-apply crop if the canvas is still showing (user skipped clicking Apply)
       if (cropState.img && !cropState.croppedBlob) {
         const canvas = document.getElementById("cropCanvas");
-        
-if (cropState.img && !cropState.croppedBlob) {
-  const canvas = document.getElementById("cropCanvas");
-  try {
-    cropState.croppedBlob = await new Promise((resolve) => {
-      try {
-        canvas.toBlob(resolve, "image/jpeg", 0.88);
-      } catch (e) {
-        resolve(null);
+
+        if (cropState.img && !cropState.croppedBlob) {
+          const canvas = document.getElementById("cropCanvas");
+          try {
+            cropState.croppedBlob = await new Promise((resolve) => {
+              try {
+                canvas.toBlob(resolve, "image/jpeg", 0.88);
+              } catch (e) {
+                resolve(null);
+              }
+            });
+            if (!cropState.croppedBlob) {
+              showToast(
+                "This image can't be exported after editing (likely due to source permissions). Please upload the image file instead.",
+                "error",
+              );
+            }
+          } catch (e) {
+            cropState.croppedBlob = null;
+            showToast(
+              "This image can't be exported after editing (likely due to source permissions). Please upload the image file instead.",
+              "error",
+            );
+          }
+        }
       }
-    });
-    if (!cropState.croppedBlob) {
-      showToast(
-        "This image can't be exported after editing (likely due to source permissions). Please upload the image file instead.",
-        "error",
-      );
-    }
-  } catch (e) {
-    cropState.croppedBlob = null;
-    showToast(
-      "This image can't be exported after editing (likely due to source permissions). Please upload the image file instead.",
-      "error",
-    );
-  }
-}}
 
       if (cropState.croppedBlob) {
         const filename = `product_${Date.now()}.jpg`;
@@ -1935,6 +2107,57 @@ if (cropState.img && !cropState.croppedBlob) {
       }
     });
 
+  async function toggleHideProduct(id, currentlyHidden) {
+    const newHidden = !currentlyHidden;
+
+    // 1. Optimistically update allProducts in memory so UI is instant
+    allProducts = allProducts.map((p) =>
+      p.id == id ? { ...p, is_hidden: newHidden } : p,
+    );
+
+    // 2. Update landing page immediately — no DB round-trip needed for display
+    renderProducts(allProducts);
+    renderBestSellers(allProducts);
+
+    // 3. Persist to DB
+    const { error } = await db
+      .from("products")
+      .update({ is_hidden: newHidden })
+      .eq("id", id);
+    if (error) {
+      // Rollback optimistic update on failure
+      allProducts = allProducts.map((p) =>
+        p.id == id ? { ...p, is_hidden: currentlyHidden } : p,
+      );
+      renderProducts(allProducts);
+      renderBestSellers(allProducts);
+      if (error.message.includes("is_hidden")) {
+        showToast(
+          "Run SQL migration first: ALTER TABLE products ADD COLUMN IF NOT EXISTS is_hidden BOOLEAN DEFAULT false;",
+          "error",
+        );
+      } else {
+        showToast("Error: " + error.message, "error");
+      }
+      return;
+    }
+
+    showToast(
+      newHidden ? "🙈 Product hidden from site" : "👁️ Product visible on site",
+    );
+
+    // 4. Reload admin table to reflect updated button state
+    loadAdminProducts();
+
+    // 5. Re-sync product carousel arrows
+    setTimeout(() => {
+      const pv = document.getElementById("prodPrev");
+      const nx = document.getElementById("prodNext");
+      const pg = document.getElementById("productGrid");
+      if (pg && pv && nx) syncArrows(pg, pv, nx);
+    }, 100);
+  }
+
   async function deleteProduct(id) {
     if (!confirm("Delete this product permanently?")) return;
     const { error } = await db.from("products").delete().eq("id", id);
@@ -1965,10 +2188,12 @@ if (cropState.img && !cropState.croppedBlob) {
     if (e.target === document.getElementById("productFormModal")) return;
   });
 
-// ═══════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════
   //  ADMIN — VIDEOS CRUD
   // ═══════════════════════════════════════════════════════════
   async function loadAdminVideos() {
+    const adminMain = document.querySelector(".admin-main");
+    const scrollTop = adminMain ? adminMain.scrollTop : 0;
     const tbody = document.getElementById("videosTableBody");
     tbody.innerHTML =
       '<tr><td colspan="4" class="loading-cell">Loading…</td></tr>';
@@ -1978,11 +2203,13 @@ if (cropState.img && !cropState.croppedBlob) {
       .order("created_at", { ascending: false });
     if (error) {
       tbody.innerHTML = `<tr><td colspan="4" class="error-cell">${error.message}</td></tr>`;
+      if (adminMain) adminMain.scrollTop = scrollTop;
       return;
     }
     if (!data.length) {
       tbody.innerHTML =
         '<tr><td colspan="4" class="loading-cell">No videos yet.</td></tr>';
+      if (adminMain) adminMain.scrollTop = scrollTop;
       return;
     }
     tbody.innerHTML = data
@@ -1994,6 +2221,7 @@ if (cropState.img && !cropState.croppedBlob) {
         <td data-label="Added">${new Date(v.created_at).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}</td>
         <td data-label="Actions" class="actions-cell"><div class="actions-cell-inner">
           <button class="action-btn edit-btn" data-id="${v.id}" data-url="${v.video_url}" data-title="${v.title.replace(/"/g, "&quot;")}">▶ Preview</button>
+          <button class="action-btn hide-btn ${v.is_hidden ? "hidden-active" : ""}" data-id="${v.id}" data-hidden="${!!v.is_hidden}">${v.is_hidden ? "👁️ Show" : "🙈 Hide"}</button>
           <button class="action-btn delete-btn" data-id="${v.id}">🗑️ Delete</button>
         </div></td>
       </tr>`,
@@ -2011,16 +2239,30 @@ if (cropState.img && !cropState.croppedBlob) {
       .forEach((btn) =>
         btn.addEventListener("click", () => deleteVideo(btn.dataset.id)),
       );
+
+    tbody
+      .querySelectorAll(".hide-btn")
+      .forEach((btn) =>
+        btn.addEventListener("click", () =>
+          toggleHideVideo(btn.dataset.id, btn.dataset.hidden === "true"),
+        ),
+      );
+
+    // Restore scroll position in admin-main after table re-render
+    if (adminMain)
+      requestAnimationFrame(() => {
+        adminMain.scrollTop = scrollTop;
+      });
   }
 
   // ═══════════════════════════════════════════════════════════
   //  VIDEO PREVIEW MODAL
   // ═══════════════════════════════════════════════════════════
   const ASPECT_RATIOS = {
-    "16/9":  { w: 480, h: 270, label: "YouTube 16:9" },
-    "9/16":  { w: 200, h: 356, label: "TikTok 9:16" },
-    "1/1":   { w: 320, h: 320, label: "Instagram 1:1" },
-    "4/5":   { w: 280, h: 350, label: "Instagram 4:5" },
+    "16/9": { w: 480, h: 270, label: "YouTube 16:9" },
+    "9/16": { w: 200, h: 356, label: "TikTok 9:16" },
+    "1/1": { w: 320, h: 320, label: "Instagram 1:1" },
+    "4/5": { w: 280, h: 350, label: "Instagram 4:5" },
   };
   let vprevZoom = 1;
   let vprevRatio = "16/9";
@@ -2029,7 +2271,8 @@ if (cropState.img && !cropState.croppedBlob) {
 
   function openVideoPreviewModal(url, title) {
     vprevCurrentUrl = url;
-    document.getElementById("vprevTitle").textContent = title || "Video Preview";
+    document.getElementById("vprevTitle").textContent =
+      title || "Video Preview";
     const video = document.getElementById("vprevVideo");
     video.src = url;
     video.load();
@@ -2037,7 +2280,7 @@ if (cropState.img && !cropState.croppedBlob) {
     vprevRatio = "16/9";
     vprevOffset = { x: 0, y: 0 };
     applyVprevRatio();
-    document.querySelectorAll(".vprev-preset").forEach(btn => {
+    document.querySelectorAll(".vprev-preset").forEach((btn) => {
       btn.classList.toggle("active", btn.dataset.ratio === vprevRatio);
     });
     document.getElementById("videoPreviewModal").classList.add("open");
@@ -2053,25 +2296,30 @@ if (cropState.img && !cropState.croppedBlob) {
     const stage = document.getElementById("vprevStage");
 
     // Frame is fixed to a comfortable size that fits the stage
-    const stageW = stage.clientWidth  || 520;
+    const stageW = stage.clientWidth || 520;
     const stageH = stage.clientHeight || 340;
     const maxW = stageW - 32;
     const maxH = stageH - 32;
     const ratioPx = r.w / r.h;
 
-    let fw = maxW, fh = maxW / ratioPx;
-    if (fh > maxH) { fh = maxH; fw = fh * ratioPx; }
+    let fw = maxW,
+      fh = maxW / ratioPx;
+    if (fh > maxH) {
+      fh = maxH;
+      fw = fh * ratioPx;
+    }
     fw = Math.round(fw);
     fh = Math.round(fh);
 
-    frame.style.width  = fw + "px";
+    frame.style.width = fw + "px";
     frame.style.height = fh + "px";
 
     // Apply zoom to video inside the fixed frame (crop tool behaviour)
     const video = document.getElementById("vprevVideo");
     video.style.transform = `translate(${vprevOffset.x}px, ${vprevOffset.y}px) scale(${vprevZoom})`;
 
-    document.getElementById("vprevZoomLabel").textContent = Math.round(vprevZoom * 100) + "%";
+    document.getElementById("vprevZoomLabel").textContent =
+      Math.round(vprevZoom * 100) + "%";
     document.getElementById("vprevRatioLabel").textContent = r.label;
   }
 
@@ -2108,12 +2356,12 @@ if (cropState.img && !cropState.croppedBlob) {
       video.style.cursor = "grab";
     }
 
-    frame.addEventListener("mousedown",  startDrag, { passive: false });
+    frame.addEventListener("mousedown", startDrag, { passive: false });
     frame.addEventListener("touchstart", startDrag, { passive: false });
-    window.addEventListener("mousemove",  moveDrag,  { passive: false });
-    window.addEventListener("touchmove",  moveDrag,  { passive: false });
-    window.addEventListener("mouseup",    endDrag);
-    window.addEventListener("touchend",   endDrag);
+    window.addEventListener("mousemove", moveDrag, { passive: false });
+    window.addEventListener("touchmove", moveDrag, { passive: false });
+    window.addEventListener("mouseup", endDrag);
+    window.addEventListener("touchend", endDrag);
   }
   initVprevDrag();
 
@@ -2124,64 +2372,99 @@ if (cropState.img && !cropState.croppedBlob) {
     video.src = "";
   }
 
-  document.getElementById("closeVideoPreviewModal").addEventListener("click", closeVideoPreviewModal);
-  document.getElementById("cancelVideoPreviewModal").addEventListener("click", closeVideoPreviewModal);
+  document
+    .getElementById("closeVideoPreviewModal")
+    .addEventListener("click", closeVideoPreviewModal);
+  document
+    .getElementById("cancelVideoPreviewModal")
+    .addEventListener("click", closeVideoPreviewModal);
 
   // Apply chosen ratio to the live video section on the site
-  document.getElementById("applyVideoPreviewBtn").addEventListener("click", () => {
-    const r = ASPECT_RATIOS[vprevRatio];
+  // ── Apply video ratio to site + persist across refreshes ──
+  function applyVideoRatioToSite(ratio) {
+    const r = ASPECT_RATIOS[ratio];
+    if (!r) return;
     const section = document.getElementById("videos");
     const grid = document.getElementById("videoGrid");
-    if (!grid) { showToast("No video section found.", "error"); return; }
+    if (!grid) return;
 
-    // Show section if hidden
     if (section) section.style.display = "";
 
-    // Build a fresh video element with the chosen aspect ratio applied inline
-    // We re-inject the video from vprevCurrentUrl with the new dimensions
-    const [rw, rh] = vprevRatio.split("/").map(Number);
-
-    // Compute a good display size for the aspect ratio
-    let boxW = 400, boxH = Math.round(boxW * rh / rw);
-    if (vprevRatio === "9/16") { boxW = 220; boxH = 390; }
-    else if (vprevRatio === "4/5") { boxW = 260; boxH = 325; }
-    else if (vprevRatio === "1/1") { boxW = 300; boxH = 300; }
-
-    // Update all existing video boxes in the grid to use the new ratio
-    grid.querySelectorAll(".video-box").forEach(box => {
-      box.style.aspectRatio = vprevRatio;
+    // Apply aspect-ratio to every video-box (CSS handles height via aspect-ratio)
+    grid.querySelectorAll(".video-box").forEach((box) => {
+      box.style.aspectRatio = ratio;
+      box.style.height = ""; // let aspect-ratio control height
     });
-    grid.querySelectorAll("video").forEach(v => {
-      v.style.aspectRatio = vprevRatio;
-      v.style.width = "100%";
-      v.style.height = "auto";
+    grid.querySelectorAll("video").forEach((v) => {
       v.style.objectFit = "cover";
+      v.style.width = "100%";
+      v.style.height = "100%";
     });
 
-    // Adjust grid columns for portrait vs landscape ratios
-    if (vprevRatio === "9/16" || vprevRatio === "4/5") {
-      grid.style.gridTemplateColumns = "repeat(auto-fit, minmax(180px, 240px))";
-    } else if (vprevRatio === "1/1") {
-      grid.style.gridTemplateColumns = "repeat(auto-fit, minmax(240px, 300px))";
+    // Grid layout + centering based on ratio orientation
+    if (ratio === "9/16" || ratio === "4/5") {
+      // Portrait — narrow boxes, centre them
+      grid.style.gridTemplateColumns = "repeat(auto-fit, minmax(160px, 220px))";
+      grid.style.justifyContent = "center";
+      grid.style.maxWidth = "700px";
+    } else if (ratio === "1/1") {
+      // Square
+      grid.style.gridTemplateColumns = "repeat(auto-fit, minmax(220px, 280px))";
+      grid.style.justifyContent = "center";
+      grid.style.maxWidth = "700px";
     } else {
-      // 16:9 landscape — default
+      // 16:9 landscape — default, full width
       grid.style.gridTemplateColumns = "";
+      grid.style.justifyContent = "";
+      grid.style.maxWidth = "";
     }
+  }
 
-    showToast(`Applied ${r.label} to video section ✅`);
-    closeVideoPreviewModal();
-  });
+  document
+    .getElementById("applyVideoPreviewBtn")
+    .addEventListener("click", () => {
+      const r = ASPECT_RATIOS[vprevRatio];
+      const grid = document.getElementById("videoGrid");
+      if (!grid) {
+        showToast("No video section found.", "error");
+        return;
+      }
+
+      // Apply to site
+      applyVideoRatioToSite(vprevRatio);
+
+      // Persist to localStorage so it survives refresh
+      try {
+        localStorage.setItem("qVideoRatio", vprevRatio);
+      } catch (e) {}
+
+      showToast(`Applied ${r.label} to video section ✅`);
+      closeVideoPreviewModal();
+
+      // Scroll into view
+      const videoSection = document.getElementById("videos");
+      if (videoSection && videoSection.style.display !== "none") {
+        setTimeout(() => {
+          videoSection.scrollIntoView({ behavior: "smooth", block: "center" });
+        }, 200);
+      }
+    });
 
   // Close on backdrop click
-  document.getElementById("videoPreviewModal").addEventListener("click", (e) => {
-    if (e.target === document.getElementById("videoPreviewModal")) closeVideoPreviewModal();
-  });
+  document
+    .getElementById("videoPreviewModal")
+    .addEventListener("click", (e) => {
+      if (e.target === document.getElementById("videoPreviewModal"))
+        closeVideoPreviewModal();
+    });
 
   // Preset buttons
-  document.querySelectorAll(".vprev-preset").forEach(btn => {
+  document.querySelectorAll(".vprev-preset").forEach((btn) => {
     btn.addEventListener("click", () => {
       vprevRatio = btn.dataset.ratio;
-      document.querySelectorAll(".vprev-preset").forEach(b => b.classList.remove("active"));
+      document
+        .querySelectorAll(".vprev-preset")
+        .forEach((b) => b.classList.remove("active"));
       btn.classList.add("active");
       resetVprevOffset();
       applyVprevRatio();
@@ -2204,11 +2487,12 @@ if (cropState.img && !cropState.croppedBlob) {
 
   // Recalculate on window resize
   window.addEventListener("resize", () => {
-    if (document.getElementById("videoPreviewModal").classList.contains("open")) {
+    if (
+      document.getElementById("videoPreviewModal").classList.contains("open")
+    ) {
       applyVprevRatio();
     }
   });
-
 
   document
     .getElementById("openAddVideoModal")
@@ -2276,6 +2560,47 @@ if (cropState.img && !cropState.croppedBlob) {
     }
   });
 
+  async function toggleHideVideo(id, currentlyHidden) {
+    const newHidden = !currentlyHidden;
+
+    // 1. Optimistically update landing page immediately
+    const videoGrid = document.getElementById("videoGrid");
+    const videoBox = videoGrid
+      ? videoGrid.querySelector(`[data-id="${id}"]`)
+      : null;
+
+    // 2. Persist to DB
+    const { error } = await db
+      .from("videos")
+      .update({ is_hidden: newHidden })
+      .eq("id", id);
+    if (error) {
+      if (error.message.includes("is_hidden")) {
+        showToast(
+          "Run SQL migration: ALTER TABLE videos ADD COLUMN IF NOT EXISTS is_hidden BOOLEAN DEFAULT false;",
+          "error",
+        );
+      } else {
+        showToast("Error: " + error.message, "error");
+      }
+      return;
+    }
+
+    showToast(
+      newHidden ? "🙈 Video hidden from site" : "👁️ Video visible on site",
+    );
+
+    // 3. Reload both admin table and landing page from fresh DB data
+    const { data } = await db
+      .from("videos")
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (data) {
+      loadAdminVideos();
+      renderVideos(data.filter((v) => !v.is_hidden));
+    }
+  }
+
   async function deleteVideo(id) {
     if (!confirm("Delete this video?")) return;
     const { error } = await db.from("videos").delete().eq("id", id);
@@ -2301,7 +2626,6 @@ if (cropState.img && !cropState.croppedBlob) {
   document
     .getElementById("cancelVideoModal")
     .addEventListener("click", closeVideoModal);
-
 
   // ═══════════════════════════════════════════════════════════
   //  ADMIN — SUBSCRIBERS + CSV EXPORT (US-32) + EMAIL CAMPAIGN (US-33)
@@ -2624,7 +2948,6 @@ if (cropState.img && !cropState.croppedBlob) {
 
 // ===== Mobile Sidebar Toggle =====
 document.addEventListener("DOMContentLoaded", () => {
-
   const sidebar = document.querySelector(".admin-sidebar");
   const toggleBtn = document.querySelector(".mobile-menu-toggle");
 
@@ -2646,5 +2969,4 @@ document.addEventListener("DOMContentLoaded", () => {
     if (sidebar) sidebar.classList.remove("open");
     overlay.classList.remove("active");
   });
-
 });
