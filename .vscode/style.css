@@ -855,7 +855,6 @@ section {
   scrollbar-width: none;
   -ms-overflow-style: none;
   align-items: stretch;
-  justify-content: safe center;
   margin-bottom: 1.8rem;
 }
 .testimonial-carousel::-webkit-scrollbar {
