@@ -2342,10 +2342,12 @@ footer {
   .admin-wrap {
     flex-direction: column;
     height: 100vh;
+    height: -webkit-fill-available;
     overflow: hidden;
   }
   .admin-main {
     height: calc(100vh - 52px);
+    height: calc(-webkit-fill-available - 52px);
     flex: 1;
   }
   .sidebar {
@@ -2486,6 +2488,19 @@ footer {
   }
   .t-form-row {
     grid-template-columns: 1fr;
+  }
+  /* Settings inputs — stack label above field on all mobile */
+  .settings-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.4rem;
+  }
+  .settings-row label {
+    width: auto;
+  }
+  .settings-row input {
+    width: 100%;
+    box-sizing: border-box;
   }
   .tab-content.active {
     padding: 1.4rem 1rem 2.5rem;
@@ -2708,7 +2723,6 @@ footer {
     font-size: 0.9rem;
   }
 
-  /* Settings row — stack label above input on small screens */
   .settings-row {
     flex-direction: column;
     align-items: flex-start;
@@ -2722,7 +2736,7 @@ footer {
     box-sizing: border-box;
   }
   .tab-content.active {
-    padding: 1.4rem 1rem 3rem;
+    padding: 1.4rem 1rem calc(4.5rem + env(safe-area-inset-bottom, 0px));
   }
 }
 
