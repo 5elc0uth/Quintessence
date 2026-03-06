@@ -2456,7 +2456,7 @@ document.addEventListener("DOMContentLoaded", () => {
         <td data-label="Title"><strong>${v.title}</strong></td>
         <td data-label="Added">${new Date(v.created_at).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}</td>
         <td data-label="Actions" class="actions-cell"><div class="actions-cell-inner">
-          <button class="action-btn edit-btn" data-id="${v.id}" data-url="${v.video_url}" data-title="${v.title.replace(/"/g, "&quot;")}">▶ Preview</button>
+          <button class="action-btn edit-btn" data-id="${v.id}" data-url="${v.video_url}" data-title="${v.title.replace(/"/g, "&quot;")}">✏️ Edit</button>
           <button class="action-btn hide-btn ${v.is_hidden ? "hidden-active" : ""}" data-id="${v.id}" data-hidden="${!!v.is_hidden}">${v.is_hidden ? "👁️ Show" : "🙈 Hide"}</button>
           <button class="action-btn delete-btn" data-id="${v.id}">🗑️ Delete</button>
         </div></td>
@@ -2576,8 +2576,12 @@ document.addEventListener("DOMContentLoaded", () => {
     const frame = document.getElementById("vprevFrame");
 
     function startDrag(e) {
-      vprevDrag.active = true;
+      // Don't drag when user clicks the native video controls (bottom 48px)
+      const frame = document.getElementById("vprevFrame");
+      const rect = frame.getBoundingClientRect();
       const pt = e.touches ? e.touches[0] : e;
+      if (pt.clientY > rect.bottom - 48) return;
+      vprevDrag.active = true;
       vprevDrag.startX = pt.clientX;
       vprevDrag.startY = pt.clientY;
       vprevDrag.ox = vprevOffset.x;

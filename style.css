@@ -2704,6 +2704,10 @@ footer {
   }
   .settings-row input {
     width: 100%;
+    box-sizing: border-box;
+  }
+  .tab-content.active {
+    padding: 1.4rem 1rem 3rem;
   }
 }
 
@@ -3642,7 +3646,7 @@ footer {
   transform-origin: center;
   transition: transform 0.15s ease;
   user-select: none;
-  pointer-events: none; /* frame handles drag, not video */
+  pointer-events: auto; /* allow native controls — drag is handled by frame with controls-area exclusion */
 }
 /* Crop corner markers — visual guide showing the frame boundary */
 .vprev-frame::before,
