@@ -602,6 +602,9 @@ section {
   color: white;
 }
 /* Product carousel — horizontal scrollable like Best Sellers */
+.swipe-dots {
+  display: none;
+}
 .product-carousel-wrap {
   position: relative;
   display: flex;
@@ -1359,6 +1362,10 @@ footer {
 .modal-overlay.open {
   display: flex;
 }
+/* Checkout modal must sit above cart drawer (z-index 3100) */
+#checkoutModal {
+  z-index: 3200;
+}
 .modal-box {
   background: white;
   border-radius: 22px;
@@ -1609,8 +1616,12 @@ footer {
   letter-spacing: 2px;
 }
 /* Mobile-only elements — hidden on desktop */
-.sidebar-mobile-bar { display: none; }
-.sidebar-actions    { display: block; }
+.sidebar-mobile-bar {
+  display: none;
+}
+.sidebar-actions {
+  display: block;
+}
 .sidebar-nav {
   flex: 1;
   padding: 1.2rem 0;
@@ -2175,6 +2186,33 @@ footer {
 
 /* ── Tablet portrait (768px) ── */
 @media (max-width: 768px) {
+  /* Swipe dots — mobile pagination for product/seller/testimonial carousels */
+  .swipe-dots {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 7px;
+    margin-top: 0.85rem;
+    min-height: 14px;
+  }
+  .swipe-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--pink-border);
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    flex-shrink: 0;
+  }
+  .swipe-dot.active {
+    background: var(--pink-btn);
+    transform: scale(1.35);
+    width: 20px;
+    border-radius: 4px;
+  }
+
   /* Swipe hint — right-edge fade on all carousels */
   .product-carousel-wrap::after,
   .carousel-wrap::after,
@@ -2185,7 +2223,11 @@ footer {
     right: 0;
     width: 48px;
     height: 100%;
-    background: linear-gradient(to right, transparent, rgba(255, 245, 247, 0.92));
+    background: linear-gradient(
+      to right,
+      transparent,
+      rgba(255, 245, 247, 0.92)
+    );
     pointer-events: none;
     z-index: 2;
   }
@@ -2379,8 +2421,8 @@ footer {
     gap: 4px;
     width: 34px;
     height: 34px;
-    background: rgba(255,255,255,0.1);
-    border: 1px solid rgba(255,255,255,0.2);
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 8px;
     cursor: pointer;
     flex-shrink: 0;
@@ -2444,8 +2486,12 @@ footer {
     flex-direction: column;
     width: 100%;
     padding: 0.3rem 0 0.5rem;
-    background: linear-gradient(180deg, rgba(0,0,0,0.15) 0%, transparent 100%);
-    border-top: 1px solid rgba(255,255,255,0.1);
+    background: linear-gradient(
+      180deg,
+      rgba(0, 0, 0, 0.15) 0%,
+      transparent 100%
+    );
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
     gap: 0;
   }
   .sidebar-nav.open {

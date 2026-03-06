@@ -447,6 +447,7 @@
           &#8594;
         </button>
       </div>
+      <div class="swipe-dots" id="prodDots"></div>
       <p class="search-empty" id="searchEmpty" style="display: none">
         No products match "<span id="searchEmptyTerm"></span>"
       </p>
@@ -468,6 +469,7 @@
           &#8594;
         </button>
       </div>
+      <div class="swipe-dots" id="bsDots"></div>
     </section>
 
     <!-- VIDEO GALLERY -->
@@ -514,72 +516,83 @@
           &#8594;
         </button>
       </div>
+      <div class="swipe-dots" id="tDots"></div>
       <div class="testimonial-submit-wrap">
-        <button class="review-toggle-btn" id="reviewToggleBtn" aria-expanded="false">
+        <button
+          class="review-toggle-btn"
+          id="reviewToggleBtn"
+          aria-expanded="false"
+        >
           <span>&#11088; Share Your Experience</span>
           <span class="review-toggle-icon">&#43;</span>
         </button>
         <div class="review-form-body" id="reviewFormBody" hidden>
-        <form id="testimonialForm" novalidate>
-          <div class="t-form-row">
-            <div class="t-form-group">
-              <label for="tName">Your Name *</label>
-              <input type="text" id="tName" placeholder="e.g. Amara" required />
+          <form id="testimonialForm" novalidate>
+            <div class="t-form-row">
+              <div class="t-form-group">
+                <label for="tName">Your Name *</label>
+                <input
+                  type="text"
+                  id="tName"
+                  placeholder="e.g. Amara"
+                  required
+                />
+              </div>
+              <div class="t-form-group">
+                <label for="tCity">City</label>
+                <input type="text" id="tCity" placeholder="e.g. Lagos" />
+              </div>
             </div>
-            <div class="t-form-group">
-              <label for="tCity">City</label>
-              <input type="text" id="tCity" placeholder="e.g. Lagos" />
+            <div class="t-form-group t-form-full">
+              <label for="tReview">Your Review *</label>
+              <div class="review-suggestions">
+                <span
+                  class="review-chip"
+                  data-text="The scent lasts so long and I get compliments everywhere I go!"
+                  >💬 Long-lasting</span
+                >
+                <span
+                  class="review-chip"
+                  data-text="Amazing quality for the price. Smells absolutely luxurious."
+                  >💬 Great value</span
+                >
+                <span
+                  class="review-chip"
+                  data-text="Fast delivery and the packaging is so beautiful. Will order again!"
+                  >💬 Fast delivery</span
+                >
+                <span
+                  class="review-chip"
+                  data-text="I love the perfume oils so much. Quintessence is now my go-to brand."
+                  >💬 Love the oils</span
+                >
+                <span
+                  class="review-chip"
+                  data-text="The body mist is so refreshing and light. Perfect for everyday wear."
+                  >💬 Body mist</span
+                >
+                <span
+                  class="review-chip"
+                  data-text="Bought as a gift and everyone loved it. Excellent presentation!"
+                  >💬 Great gift</span
+                >
+              </div>
+              <textarea
+                id="tReview"
+                rows="3"
+                placeholder="Tell us about your experience with Quintessence..."
+                required
+              ></textarea>
             </div>
-          </div>
-          <div class="t-form-group t-form-full">
-            <label for="tReview">Your Review *</label>
-            <div class="review-suggestions">
-              <span
-                class="review-chip"
-                data-text="The scent lasts so long and I get compliments everywhere I go!"
-                >💬 Long-lasting</span
-              >
-              <span
-                class="review-chip"
-                data-text="Amazing quality for the price. Smells absolutely luxurious."
-                >💬 Great value</span
-              >
-              <span
-                class="review-chip"
-                data-text="Fast delivery and the packaging is so beautiful. Will order again!"
-                >💬 Fast delivery</span
-              >
-              <span
-                class="review-chip"
-                data-text="I love the perfume oils so much. Quintessence is now my go-to brand."
-                >💬 Love the oils</span
-              >
-              <span
-                class="review-chip"
-                data-text="The body mist is so refreshing and light. Perfect for everyday wear."
-                >💬 Body mist</span
-              >
-              <span
-                class="review-chip"
-                data-text="Bought as a gift and everyone loved it. Excellent presentation!"
-                >💬 Great gift</span
-              >
-            </div>
-            <textarea
-              id="tReview"
-              rows="3"
-              placeholder="Tell us about your experience with Quintessence..."
-              required
-            ></textarea>
-          </div>
-          <button type="submit" class="cta-btn t-submit-btn">
-            Submit Review
-          </button>
-        </form>
-        <p class="t-success-msg" id="tSuccessMsg">
-          &#10003; Thank you! Your review has been submitted.
-        </p>
-        </div><!-- /.review-form-body -->
+            <button type="submit" class="cta-btn t-submit-btn">
+              Submit Review
+            </button>
+          </form>
+          <p class="t-success-msg" id="tSuccessMsg">
+            &#10003; Thank you! Your review has been submitted.
+          </p>
+        </div>
+        <!-- /.review-form-body -->
       </div>
     </section>
 
@@ -937,11 +950,21 @@
           </div>
           <!-- Mobile nav bar -->
           <div class="sidebar-mobile-bar">
-            <button class="sidebar-nav-toggle" id="sidebarNavToggle" aria-label="Open menu">
+            <button
+              class="sidebar-nav-toggle"
+              id="sidebarNavToggle"
+              aria-label="Open menu"
+            >
               <span></span><span></span><span></span>
             </button>
-            <span class="sidebar-mobile-title" id="sidebarMobileTitle">Products</span>
-            <button class="close-admin-btn" id="closeAdminBtn" title="Back to Site">
+            <span class="sidebar-mobile-title" id="sidebarMobileTitle"
+              >Products</span
+            >
+            <button
+              class="close-admin-btn"
+              id="closeAdminBtn"
+              title="Back to Site"
+            >
               <span class="btn-text">&#8592; Back to Site</span>
             </button>
             <button class="logout-btn" id="logoutBtn" title="Logout">
@@ -971,7 +994,11 @@
           </nav>
           <!-- Desktop-only action buttons -->
           <div class="sidebar-actions">
-            <button class="close-admin-btn" id="closeAdminBtnDesktop" title="Back to Site">
+            <button
+              class="close-admin-btn"
+              id="closeAdminBtnDesktop"
+              title="Back to Site"
+            >
               <span class="btn-text">&#8592; Back to Site</span>
             </button>
             <button class="logout-btn" id="logoutBtnDesktop" title="Logout">

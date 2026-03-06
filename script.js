@@ -451,6 +451,64 @@ document.addEventListener("DOMContentLoaded", () => {
   // Testimonials carousel
   initCarousel("testimonialGrid", "tPrev", "tNext", 300);
 
+  // ── Swipe dots — mobile pagination indicators ───────────────
+  function initSwipeDots(carouselId, dotsId) {
+    const carousel = document.getElementById(carouselId);
+    const wrap = document.getElementById(dotsId);
+    if (!carousel || !wrap) return;
+
+    function cardWidth() {
+      const first = carousel.querySelector(
+        "[class*='card'], [class*='seller-card'], .testimonial-card",
+      );
+      if (!first) return carousel.clientWidth;
+      const style = getComputedStyle(carousel);
+      const gap = parseFloat(style.gap) || 0;
+      return first.offsetWidth + gap;
+    }
+
+    function buildDots() {
+      // Only build on mobile
+      if (window.innerWidth > 768) {
+        wrap.innerHTML = "";
+        return;
+      }
+      const cw = cardWidth();
+      const total = Math.max(1, Math.round(carousel.scrollWidth / cw));
+      // Rebuild only if count changed
+      if (wrap.children.length === total) return;
+      wrap.innerHTML = "";
+      for (let i = 0; i < total; i++) {
+        const d = document.createElement("button");
+        d.className = "swipe-dot" + (i === 0 ? " active" : "");
+        d.setAttribute("aria-label", `Go to item ${i + 1}`);
+        d.addEventListener("click", () => {
+          carousel.scrollTo({ left: cw * i, behavior: "smooth" });
+        });
+        wrap.appendChild(d);
+      }
+    }
+
+    function updateActive() {
+      const dots = wrap.querySelectorAll(".swipe-dot");
+      if (!dots.length) return;
+      const cw = cardWidth();
+      const idx = Math.min(
+        Math.round(carousel.scrollLeft / cw),
+        dots.length - 1,
+      );
+      dots.forEach((d, i) => d.classList.toggle("active", i === idx));
+    }
+
+    buildDots();
+    carousel.addEventListener("scroll", updateActive, { passive: true });
+    window.addEventListener("resize", buildDots);
+  }
+
+  initSwipeDots("productGrid", "prodDots");
+  initSwipeDots("bestSellersCarousel", "bsDots");
+  initSwipeDots("testimonialGrid", "tDots");
+
   // Re-sync product arrows whenever products are re-rendered (filter/search)
   const _origSyncProd = () => {
     const p = document.getElementById("productGrid");
@@ -640,14 +698,34 @@ document.addEventListener("DOMContentLoaded", () => {
   // ═══════════════════════════════════════════════════════════
   function openCheckout() {
     const summary = document.getElementById("checkoutSummary");
-    summary.innerHTML = cart.map(i =>
-      `<div class="checkout-line">
+    summary.innerHTML = cart
+      .map(
+        (i) =>
+          `<div class="checkout-line">
         <span class="checkout-line-name">${i.product.name} <span class="checkout-line-qty">×${i.qty}</span></span>
         <span class="checkout-line-price">₦${(Number(i.product.price) * i.qty).toLocaleString()}</span>
-      </div>`
-    ).join("");
-    document.getElementById("checkoutTotal").textContent = `₦${cartGrandTotal().toLocaleString()}`;
+      </div>`,
+      )
+      .join("");
+    document.getElementById("checkoutTotal").textContent =
+      `₦${cartGrandTotal().toLocaleString()}`;
     document.getElementById("checkoutError").textContent = "";
+    // Instantly hide cart (bypass CSS transitions) so it doesn't cover/dim checkout
+    cartDrawer.classList.remove("open");
+    cartOverlay.classList.remove("open");
+    cartOverlay.style.transition = "none";
+    cartOverlay.style.opacity = "0";
+    cartOverlay.style.pointerEvents = "none";
+    cartDrawer.style.transition = "none";
+    cartDrawer.style.transform = "translateX(110%)";
+    // Restore transitions after a tick so future cart opens animate normally
+    requestAnimationFrame(() => {
+      cartOverlay.style.transition = "";
+      cartOverlay.style.opacity = "";
+      cartOverlay.style.pointerEvents = "";
+      cartDrawer.style.transition = "";
+      cartDrawer.style.transform = "";
+    });
     document.getElementById("checkoutModal").style.display = "flex";
     document.body.style.overflow = "hidden";
   }
@@ -655,44 +733,79 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("checkoutModal").style.display = "none";
     document.body.style.overflow = "";
   }
-  document.getElementById("cartCheckoutBtn").addEventListener("click", openCheckout);
-  document.getElementById("checkoutClose").addEventListener("click", closeCheckout);
+  document
+    .getElementById("cartCheckoutBtn")
+    .addEventListener("click", openCheckout);
+  document
+    .getElementById("checkoutClose")
+    .addEventListener("click", closeCheckout);
   document.getElementById("checkoutModal").addEventListener("click", (e) => {
     if (e.target === document.getElementById("checkoutModal")) closeCheckout();
   });
 
-  document.getElementById("checkoutSubmitBtn").addEventListener("click", async () => {
-    const name  = document.getElementById("checkoutName").value.trim();
-    const phone = document.getElementById("checkoutPhone").value.trim();
-    const errEl = document.getElementById("checkoutError");
-    if (!name)  { errEl.textContent = "Please enter your full name."; return; }
-    if (!phone) { errEl.textContent = "Please enter your phone number."; return; }
-    errEl.textContent = "";
-    const btn = document.getElementById("checkoutSubmitBtn");
-    btn.disabled = true;
-    btn.textContent = "Saving order…";
-    const ref = "QNT-" + Date.now().toString(36).toUpperCase();
-    const items = cart.map(i => ({ id: i.product.id, name: i.product.name, qty: i.qty, price: Number(i.product.price) }));
-    const total = cartGrandTotal();
-    if (db) {
-      try {
-        await db.from("orders").insert([{ ref, customer_name: name, customer_phone: phone, items: JSON.stringify(items), total, status: "Pending" }]);
-      } catch(e) { /* non-blocking */ }
-    }
-    const lines = items.map(i => `• ${i.name} (×${i.qty}) — ₦${(i.price * i.qty).toLocaleString()}`).join("\n");
-    const msg = `Hello! I'd like to place an order 🛍️\n\n*Ref: ${ref}*\nName: ${name}\nPhone: ${phone}\n\n${lines}\n\n*Total: ₦${total.toLocaleString()}*\n\nPlease share payment details. Thank you!`;
-    const waUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(msg)}`;
-    cart = [];
-    saveCart();
-    updateCartBadge();
-    renderCart();
-    closeCheckout();
-    closeCart();
-    btn.disabled = false;
-    btn.innerHTML = "&#128722; Place Order via WhatsApp";
-    showToast(`Order ${ref} placed! Opening WhatsApp… 🎉`);
-    setTimeout(() => window.open(waUrl, "_blank"), 600);
-  });
+  document
+    .getElementById("checkoutSubmitBtn")
+    .addEventListener("click", async () => {
+      const name = document.getElementById("checkoutName").value.trim();
+      const phone = document.getElementById("checkoutPhone").value.trim();
+      const errEl = document.getElementById("checkoutError");
+      if (!name) {
+        errEl.textContent = "Please enter your full name.";
+        return;
+      }
+      if (!phone) {
+        errEl.textContent = "Please enter your phone number.";
+        return;
+      }
+      errEl.textContent = "";
+      const btn = document.getElementById("checkoutSubmitBtn");
+      btn.disabled = true;
+      btn.textContent = "Saving order…";
+      const ref = "QNT-" + Date.now().toString(36).toUpperCase();
+      const items = cart.map((i) => ({
+        id: i.product.id,
+        name: i.product.name,
+        qty: i.qty,
+        price: Number(i.product.price),
+      }));
+      const total = cartGrandTotal();
+      if (db) {
+        try {
+          await db
+            .from("orders")
+            .insert([
+              {
+                ref,
+                customer_name: name,
+                customer_phone: phone,
+                items: JSON.stringify(items),
+                total,
+                status: "Pending",
+              },
+            ]);
+        } catch (e) {
+          /* non-blocking */
+        }
+      }
+      const lines = items
+        .map(
+          (i) =>
+            `• ${i.name} (×${i.qty}) — ₦${(i.price * i.qty).toLocaleString()}`,
+        )
+        .join("\n");
+      const msg = `Hello! I'd like to place an order 🛍️\n\n*Ref: ${ref}*\nName: ${name}\nPhone: ${phone}\n\n${lines}\n\n*Total: ₦${total.toLocaleString()}*\n\nPlease share payment details. Thank you!`;
+      const waUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(msg)}`;
+      cart = [];
+      saveCart();
+      updateCartBadge();
+      renderCart();
+      closeCheckout();
+      closeCart();
+      btn.disabled = false;
+      btn.innerHTML = "&#128722; Place Order via WhatsApp";
+      showToast(`Order ${ref} placed! Opening WhatsApp… 🎉`);
+      setTimeout(() => window.open(waUrl, "_blank"), 600);
+    });
 
   // ═══════════════════════════════════════════════════════════
   //  ADMIN — ORDERS
@@ -702,48 +815,76 @@ document.addEventListener("DOMContentLoaded", () => {
     const scrollTop = adminMain ? adminMain.scrollTop : 0;
     const tbody = document.getElementById("ordersTableBody");
     if (!tbody) return;
-    tbody.innerHTML = '<tr><td colspan="8" class="loading-cell">Loading…</td></tr>';
-    if (!db) { tbody.innerHTML = '<tr><td colspan="8" class="loading-cell">Not connected.</td></tr>'; return; }
-    const { data, error } = await db.from("orders").select("*").order("created_at", { ascending: false });
+    tbody.innerHTML =
+      '<tr><td colspan="8" class="loading-cell">Loading…</td></tr>';
+    if (!db) {
+      tbody.innerHTML =
+        '<tr><td colspan="8" class="loading-cell">Not connected.</td></tr>';
+      return;
+    }
+    const { data, error } = await db
+      .from("orders")
+      .select("*")
+      .order("created_at", { ascending: false });
     if (error) {
-      const msg = error.message && error.message.toLowerCase().includes("relation")
-        ? 'Orders table not set up yet. Run the SQL from the setup guide.'
-        : error.message;
+      const msg =
+        error.message && error.message.toLowerCase().includes("relation")
+          ? "Orders table not set up yet. Run the SQL from the setup guide."
+          : error.message;
       tbody.innerHTML = `<tr><td colspan="8" class="error-cell">${msg}</td></tr>`;
       return;
     }
     const badge = document.getElementById("orderCount");
-    if (badge) badge.textContent = `${(data||[]).length} order${(data||[]).length !== 1 ? "s" : ""}`;
+    if (badge)
+      badge.textContent = `${(data || []).length} order${(data || []).length !== 1 ? "s" : ""}`;
     if (!data || !data.length) {
-      tbody.innerHTML = '<tr><td colspan="8" class="loading-cell">No orders yet.</td></tr>';
+      tbody.innerHTML =
+        '<tr><td colspan="8" class="loading-cell">No orders yet.</td></tr>';
       return;
     }
-    const STATUS_OPTS = ["Pending","Confirmed","Dispatched","Delivered","Cancelled"];
-    tbody.innerHTML = data.map(o => {
-      let itemsSummary = "";
-      try {
-        const arr = typeof o.items === "string" ? JSON.parse(o.items) : (o.items || []);
-        itemsSummary = arr.map(i => `${i.name} ×${i.qty}`).join(", ");
-      } catch(e) { itemsSummary = String(o.items || ""); }
-      const statusOpts = STATUS_OPTS.map(s => `<option value="${s}" ${o.status===s?"selected":""}>${s}</option>`).join("");
-      return `<tr>
-        <td data-label="Ref"><span class="order-ref">${o.ref||"—"}</span></td>
-        <td data-label="Customer"><strong>${o.customer_name||"—"}</strong></td>
-        <td data-label="Phone"><a href="https://wa.me/${(o.customer_phone||"").replace(/\D/g,"")}" target="_blank" class="order-phone-link">${o.customer_phone||"—"}</a></td>
+    const STATUS_OPTS = [
+      "Pending",
+      "Confirmed",
+      "Dispatched",
+      "Delivered",
+      "Cancelled",
+    ];
+    tbody.innerHTML = data
+      .map((o) => {
+        let itemsSummary = "";
+        try {
+          const arr =
+            typeof o.items === "string" ? JSON.parse(o.items) : o.items || [];
+          itemsSummary = arr.map((i) => `${i.name} ×${i.qty}`).join(", ");
+        } catch (e) {
+          itemsSummary = String(o.items || "");
+        }
+        const statusOpts = STATUS_OPTS.map(
+          (s) =>
+            `<option value="${s}" ${o.status === s ? "selected" : ""}>${s}</option>`,
+        ).join("");
+        return `<tr>
+        <td data-label="Ref"><span class="order-ref">${o.ref || "—"}</span></td>
+        <td data-label="Customer"><strong>${o.customer_name || "—"}</strong></td>
+        <td data-label="Phone"><a href="https://wa.me/${(o.customer_phone || "").replace(/\D/g, "")}" target="_blank" class="order-phone-link">${o.customer_phone || "—"}</a></td>
         <td data-label="Items" class="order-items-cell">${itemsSummary}</td>
-        <td data-label="Total">₦${Number(o.total||0).toLocaleString()}</td>
+        <td data-label="Total">₦${Number(o.total || 0).toLocaleString()}</td>
         <td data-label="Status"><select class="order-status-select" data-id="${o.id}">${statusOpts}</select></td>
-        <td data-label="Date">${new Date(o.created_at).toLocaleDateString("en-GB",{day:"2-digit",month:"short",year:"numeric"})}</td>
+        <td data-label="Date">${new Date(o.created_at).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}</td>
         <td data-label="Actions"><button class="action-btn delete-btn order-delete-btn" data-id="${o.id}">🗑️</button></td>
       </tr>`;
-    }).join("");
-    tbody.querySelectorAll(".order-status-select").forEach(sel => {
+      })
+      .join("");
+    tbody.querySelectorAll(".order-status-select").forEach((sel) => {
       sel.addEventListener("change", async () => {
-        await db.from("orders").update({ status: sel.value }).eq("id", sel.dataset.id);
+        await db
+          .from("orders")
+          .update({ status: sel.value })
+          .eq("id", sel.dataset.id);
         showToast(`Order updated to ${sel.value}`);
       });
     });
-    tbody.querySelectorAll(".order-delete-btn").forEach(btn => {
+    tbody.querySelectorAll(".order-delete-btn").forEach((btn) => {
       btn.addEventListener("click", async () => {
         if (!confirm("Delete this order?")) return;
         await db.from("orders").delete().eq("id", btn.dataset.id);
@@ -751,7 +892,10 @@ document.addEventListener("DOMContentLoaded", () => {
         loadAdminOrders();
       });
     });
-    if (adminMain) requestAnimationFrame(() => { adminMain.scrollTop = scrollTop; });
+    if (adminMain)
+      requestAnimationFrame(() => {
+        adminMain.scrollTop = scrollTop;
+      });
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -759,7 +903,14 @@ document.addEventListener("DOMContentLoaded", () => {
   // ═══════════════════════════════════════════════════════════
   async function renderAnalytics() {
     if (!db) return;
-    const safeQuery = async (fn) => { try { const r = await fn(); return r.data || []; } catch(e) { return []; } };
+    const safeQuery = async (fn) => {
+      try {
+        const r = await fn();
+        return r.data || [];
+      } catch (e) {
+        return [];
+      }
+    };
     const [prods, subs, revs, ords, vids] = await Promise.all([
       safeQuery(() => db.from("products").select("*")),
       safeQuery(() => db.from("subscribers").select("created_at")),
@@ -767,52 +918,118 @@ document.addEventListener("DOMContentLoaded", () => {
       safeQuery(() => db.from("orders").select("status,total,created_at")),
       safeQuery(() => db.from("videos").select("id")),
     ]);
-    const totalRevenue = ords.filter(o => o.status !== "Cancelled").reduce((s,o) => s + Number(o.total||0), 0);
+    const totalRevenue = ords
+      .filter((o) => o.status !== "Cancelled")
+      .reduce((s, o) => s + Number(o.total || 0), 0);
     const statCards = [
-      { icon:"📦", label:"Total Products",   value: prods.length },
-      { icon:"👁️", label:"Visible",          value: prods.filter(p=>!p.is_hidden).length },
-      { icon:"✅", label:"In Stock",         value: prods.filter(p=>p.is_in_stock!==false).length },
-      { icon:"🌟", label:"Best Sellers",      value: prods.filter(p=>p.is_best_seller).length },
-      { icon:"🎬", label:"Videos",           value: vids.length },
-      { icon:"📧", label:"Subscribers",      value: subs.length },
-      { icon:"⭐", label:"Reviews",          value: revs.length },
-      { icon:"🛍️", label:"Total Orders",     value: ords.length },
-      { icon:"💰", label:"Est. Revenue",     value: `₦${totalRevenue.toLocaleString()}` },
-      { icon:"⏳", label:"Pending",          value: ords.filter(o=>o.status==="Pending").length },
-      { icon:"🚚", label:"Dispatched",       value: ords.filter(o=>o.status==="Dispatched").length },
-      { icon:"🎉", label:"Delivered",        value: ords.filter(o=>o.status==="Delivered").length },
+      { icon: "📦", label: "Total Products", value: prods.length },
+      {
+        icon: "👁️",
+        label: "Visible",
+        value: prods.filter((p) => !p.is_hidden).length,
+      },
+      {
+        icon: "✅",
+        label: "In Stock",
+        value: prods.filter((p) => p.is_in_stock !== false).length,
+      },
+      {
+        icon: "🌟",
+        label: "Best Sellers",
+        value: prods.filter((p) => p.is_best_seller).length,
+      },
+      { icon: "🎬", label: "Videos", value: vids.length },
+      { icon: "📧", label: "Subscribers", value: subs.length },
+      { icon: "⭐", label: "Reviews", value: revs.length },
+      { icon: "🛍️", label: "Total Orders", value: ords.length },
+      {
+        icon: "💰",
+        label: "Est. Revenue",
+        value: `₦${totalRevenue.toLocaleString()}`,
+      },
+      {
+        icon: "⏳",
+        label: "Pending",
+        value: ords.filter((o) => o.status === "Pending").length,
+      },
+      {
+        icon: "🚚",
+        label: "Dispatched",
+        value: ords.filter((o) => o.status === "Dispatched").length,
+      },
+      {
+        icon: "🎉",
+        label: "Delivered",
+        value: ords.filter((o) => o.status === "Delivered").length,
+      },
     ];
     const grid = document.getElementById("analyticsGrid");
-    if (grid) grid.innerHTML = statCards.map(c => `
+    if (grid)
+      grid.innerHTML = statCards
+        .map(
+          (c) => `
       <div class="analytics-stat-card">
         <div class="analytics-stat-icon">${c.icon}</div>
         <div class="analytics-stat-value">${c.value}</div>
         <div class="analytics-stat-label">${c.label}</div>
-      </div>`).join("");
+      </div>`,
+        )
+        .join("");
     function renderBarChart(id, data) {
       const el = document.getElementById(id);
       if (!el) return;
-      if (!data.length) { el.innerHTML = '<p class="chart-empty">No data yet.</p>'; return; }
-      const max = Math.max(...data.map(d => d.value), 1);
-      el.innerHTML = data.map(d => `
+      if (!data.length) {
+        el.innerHTML = '<p class="chart-empty">No data yet.</p>';
+        return;
+      }
+      const max = Math.max(...data.map((d) => d.value), 1);
+      el.innerHTML = data
+        .map(
+          (d) => `
         <div class="bar-row">
           <span class="bar-label" title="${d.label}">${d.label}</span>
-          <div class="bar-track"><div class="bar-fill" style="width:${Math.round((d.value/max)*100)}%"></div></div>
+          <div class="bar-track"><div class="bar-fill" style="width:${Math.round((d.value / max) * 100)}%"></div></div>
           <span class="bar-value">${d.value}</span>
-        </div>`).join("");
+        </div>`,
+        )
+        .join("");
     }
     const catMap = {};
-    prods.forEach(p => { catMap[p.category||"Other"] = (catMap[p.category||"Other"]||0) + 1; });
-    renderBarChart("chartCategories", Object.entries(catMap).map(([l,v])=>({label:l,value:v})).sort((a,b)=>b.value-a.value).slice(0,8));
-    const subMonths = {};
-    subs.forEach(s => {
-      const m = s.created_at ? new Date(s.created_at).toLocaleDateString("en-GB",{month:"short",year:"2-digit"}) : "?";
-      subMonths[m] = (subMonths[m]||0) + 1;
+    prods.forEach((p) => {
+      catMap[p.category || "Other"] = (catMap[p.category || "Other"] || 0) + 1;
     });
-    renderBarChart("chartSubscribers", Object.entries(subMonths).map(([l,v])=>({label:l,value:v})).slice(-8));
+    renderBarChart(
+      "chartCategories",
+      Object.entries(catMap)
+        .map(([l, v]) => ({ label: l, value: v }))
+        .sort((a, b) => b.value - a.value)
+        .slice(0, 8),
+    );
+    const subMonths = {};
+    subs.forEach((s) => {
+      const m = s.created_at
+        ? new Date(s.created_at).toLocaleDateString("en-GB", {
+            month: "short",
+            year: "2-digit",
+          })
+        : "?";
+      subMonths[m] = (subMonths[m] || 0) + 1;
+    });
+    renderBarChart(
+      "chartSubscribers",
+      Object.entries(subMonths)
+        .map(([l, v]) => ({ label: l, value: v }))
+        .slice(-8),
+    );
     const statusMap = {};
-    ords.forEach(o => { statusMap[o.status||"Unknown"] = (statusMap[o.status||"Unknown"]||0) + 1; });
-    renderBarChart("chartOrders", Object.entries(statusMap).map(([l,v])=>({label:l,value:v})));
+    ords.forEach((o) => {
+      statusMap[o.status || "Unknown"] =
+        (statusMap[o.status || "Unknown"] || 0) + 1;
+    });
+    renderBarChart(
+      "chartOrders",
+      Object.entries(statusMap).map(([l, v]) => ({ label: l, value: v })),
+    );
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -1013,6 +1230,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Re-sync product arrows after render (card count may change with filters)
     if (typeof _origSyncProd === "function") _origSyncProd();
+    // Rebuild swipe dots after products render
+    setTimeout(() => initSwipeDots("productGrid", "prodDots"), 60);
   }
 
   // ── Product search events ──────────────────────────────────
@@ -1095,6 +1314,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const bsPrev = document.getElementById("bsPrev");
     const bsNext = document.getElementById("bsNext");
     if (bsPrev && bsNext) setTimeout(() => syncArrows(el, bsPrev, bsNext), 120);
+    // Rebuild swipe dots after best sellers render
+    setTimeout(() => initSwipeDots("bestSellersCarousel", "bsDots"), 60);
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -1233,7 +1454,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // ── Review form toggle ──────────────────────────────────────
   const reviewToggleBtn = document.getElementById("reviewToggleBtn");
-  const reviewFormBody  = document.getElementById("reviewFormBody");
+  const reviewFormBody = document.getElementById("reviewFormBody");
   if (reviewToggleBtn && reviewFormBody) {
     reviewToggleBtn.addEventListener("click", () => {
       const isOpen = reviewFormBody.hasAttribute("hidden") === false;
@@ -1249,14 +1470,20 @@ document.addEventListener("DOMContentLoaded", () => {
     const origSuccess = document.getElementById("tSuccessMsg");
     if (origSuccess) {
       const obs = new MutationObserver(() => {
-        if (origSuccess.style.display !== "none" && origSuccess.style.display !== "") {
+        if (
+          origSuccess.style.display !== "none" &&
+          origSuccess.style.display !== ""
+        ) {
           setTimeout(() => {
             reviewFormBody.setAttribute("hidden", "");
             reviewToggleBtn.setAttribute("aria-expanded", "false");
           }, 2500);
         }
       });
-      obs.observe(origSuccess, { attributes: true, attributeFilter: ["style"] });
+      obs.observe(origSuccess, {
+        attributes: true,
+        attributeFilter: ["style"],
+      });
     }
   }
 
@@ -1279,12 +1506,13 @@ document.addEventListener("DOMContentLoaded", () => {
         grid.insertBefore(card, firstHardCoded);
         addDeleteBtn(card, true, r.id);
       });
-      // Re-sync arrows after reviews load — scroll to start so newest shows first
+      // Prepend DB reviews BEFORE hard-coded cards so newest shows first
       setTimeout(() => {
         const tPrev = document.getElementById("tPrev");
         const tNext = document.getElementById("tNext");
         grid.scrollLeft = 0;
         if (grid && tPrev && tNext) syncArrows(grid, tPrev, tNext);
+        initSwipeDots("testimonialGrid", "tDots");
       }, 150);
     } catch (e) {
       console.warn("Reviews:", e.message);
@@ -1316,18 +1544,32 @@ document.addEventListener("DOMContentLoaded", () => {
         if (!error && data) {
           const grid = document.getElementById("testimonialGrid");
           const card = document.createElement("div");
-          card.className = "testimonial-card";
+          card.className = "testimonial-card reveal visible";
           card.innerHTML = `<p>"${review}"</p><span>— ${name}${city ? ", " + city : ""}</span>`;
-          revealObs.observe(card);
           grid.insertBefore(card, grid.firstChild);
           addDeleteBtn(card, true, data.id);
-          // Re-sync arrows after new card added
+          // Scroll to start so new card is immediately visible
+          grid.scrollLeft = 0;
           setTimeout(() => {
             const tPrev = document.getElementById("tPrev");
             const tNext = document.getElementById("tNext");
             if (tPrev && tNext) syncArrows(grid, tPrev, tNext);
+            initSwipeDots("testimonialGrid", "tDots");
           }, 150);
         }
+      } else {
+        // No db — still show the card immediately in the DOM
+        const grid = document.getElementById("testimonialGrid");
+        const card = document.createElement("div");
+        card.className = "testimonial-card reveal visible";
+        card.innerHTML = `<p>"${review}"</p><span>— ${name}${city ? ", " + city : ""}</span>`;
+        grid.insertBefore(card, grid.firstChild);
+        grid.scrollLeft = 0;
+        setTimeout(() => {
+          const tPrev = document.getElementById("tPrev");
+          const tNext = document.getElementById("tNext");
+          if (tPrev && tNext) syncArrows(grid, tPrev, tNext);
+        }, 150);
       }
 
       btn.textContent = "Submit Review";
@@ -1480,7 +1722,8 @@ document.addEventListener("DOMContentLoaded", () => {
       .querySelectorAll(".tab-content")
       .forEach((t) => t.classList.remove("active"));
     document.getElementById(`tab-${tab}`).classList.add("active");
-    const tabLabel = {
+    const tabLabel =
+      {
         products: "Products",
         videos: "Videos",
         orders: "Orders",
@@ -1517,10 +1760,16 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // Wire desktop duplicate close/logout buttons
-  document.getElementById("closeAdminBtnDesktop")
-    ?.addEventListener("click", () => document.getElementById("closeAdminBtn")?.click());
-  document.getElementById("logoutBtnDesktop")
-    ?.addEventListener("click", () => document.getElementById("logoutBtn")?.click());
+  document
+    .getElementById("closeAdminBtnDesktop")
+    ?.addEventListener("click", () =>
+      document.getElementById("closeAdminBtn")?.click(),
+    );
+  document
+    .getElementById("logoutBtnDesktop")
+    ?.addEventListener("click", () =>
+      document.getElementById("logoutBtn")?.click(),
+    );
 
   // ═══════════════════════════════════════════════════════════
   //  ADMIN — AUTO-FILL DESCRIPTION
@@ -2516,8 +2765,8 @@ document.addEventListener("DOMContentLoaded", () => {
     // Restore last applied ratio from localStorage — never reset to default
     try {
       const saved = localStorage.getItem("qVideoRatio");
-      vprevRatio = (saved && ASPECT_RATIOS[saved]) ? saved : "16/9";
-    } catch(e) {
+      vprevRatio = saved && ASPECT_RATIOS[saved] ? saved : "16/9";
+    } catch (e) {
       vprevRatio = "16/9";
     }
     vprevOffset = { x: 0, y: 0 };
