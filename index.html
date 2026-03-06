@@ -515,7 +515,11 @@
         </button>
       </div>
       <div class="testimonial-submit-wrap">
-        <h3>&#11088; Share Your Experience</h3>
+        <button class="review-toggle-btn" id="reviewToggleBtn" aria-expanded="false">
+          <span>&#11088; Share Your Experience</span>
+          <span class="review-toggle-icon">&#43;</span>
+        </button>
+        <div class="review-form-body" id="reviewFormBody" hidden>
         <form id="testimonialForm" novalidate>
           <div class="t-form-row">
             <div class="t-form-group">
@@ -575,6 +579,7 @@
         <p class="t-success-msg" id="tSuccessMsg">
           &#10003; Thank you! Your review has been submitted.
         </p>
+        </div><!-- /.review-form-body -->
       </div>
     </section>
 
@@ -930,7 +935,21 @@
             <h2>QUINTESSENCE</h2>
             <span>Admin Panel</span>
           </div>
-          <nav class="sidebar-nav">
+          <!-- Mobile nav bar -->
+          <div class="sidebar-mobile-bar">
+            <button class="sidebar-nav-toggle" id="sidebarNavToggle" aria-label="Open menu">
+              <span></span><span></span><span></span>
+            </button>
+            <span class="sidebar-mobile-title" id="sidebarMobileTitle">Products</span>
+            <button class="close-admin-btn" id="closeAdminBtn" title="Back to Site">
+              <span class="btn-text">&#8592; Back to Site</span>
+            </button>
+            <button class="logout-btn" id="logoutBtn" title="Logout">
+              <span class="btn-text">&#128682; Logout</span>
+            </button>
+          </div>
+          <!-- Nav links (desktop sidebar / mobile dropdown) -->
+          <nav class="sidebar-nav" id="sidebarNav">
             <button class="sidebar-link active" data-tab="products">
               &#128717; Products
             </button>
@@ -950,16 +969,15 @@
               &#9881; Settings
             </button>
           </nav>
-          <button
-            class="close-admin-btn"
-            id="closeAdminBtn"
-            title="Back to Site"
-          >
-            <span class="btn-text">&#8592; Back to Site</span>
-          </button>
-          <button class="logout-btn" id="logoutBtn" title="Logout">
-            <span class="btn-text">&#128682; Logout</span>
-          </button>
+          <!-- Desktop-only action buttons -->
+          <div class="sidebar-actions">
+            <button class="close-admin-btn" id="closeAdminBtnDesktop" title="Back to Site">
+              <span class="btn-text">&#8592; Back to Site</span>
+            </button>
+            <button class="logout-btn" id="logoutBtnDesktop" title="Logout">
+              <span class="btn-text">&#128682; Logout</span>
+            </button>
+          </div>
         </aside>
         <main class="admin-main">
           <div class="admin-header">

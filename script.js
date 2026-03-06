@@ -82,6 +82,9 @@ const SUPABASE_ANON =
 */
 
 document.addEventListener("DOMContentLoaded", () => {
+  // Always start at top of page on load/refresh
+  if ("scrollRestoration" in history) history.scrollRestoration = "manual";
+  window.scrollTo(0, 0);
   // ── Supabase init ──────────────────────────────────────────
   let db = null;
   try {
@@ -1228,6 +1231,35 @@ document.addEventListener("DOMContentLoaded", () => {
       .forEach((b) => (b.style.display = "none"));
   }
 
+  // ── Review form toggle ──────────────────────────────────────
+  const reviewToggleBtn = document.getElementById("reviewToggleBtn");
+  const reviewFormBody  = document.getElementById("reviewFormBody");
+  if (reviewToggleBtn && reviewFormBody) {
+    reviewToggleBtn.addEventListener("click", () => {
+      const isOpen = reviewFormBody.hasAttribute("hidden") === false;
+      if (isOpen) {
+        reviewFormBody.setAttribute("hidden", "");
+        reviewToggleBtn.setAttribute("aria-expanded", "false");
+      } else {
+        reviewFormBody.removeAttribute("hidden");
+        reviewToggleBtn.setAttribute("aria-expanded", "true");
+      }
+    });
+    // Auto-close after successful submit
+    const origSuccess = document.getElementById("tSuccessMsg");
+    if (origSuccess) {
+      const obs = new MutationObserver(() => {
+        if (origSuccess.style.display !== "none" && origSuccess.style.display !== "") {
+          setTimeout(() => {
+            reviewFormBody.setAttribute("hidden", "");
+            reviewToggleBtn.setAttribute("aria-expanded", "false");
+          }, 2500);
+        }
+      });
+      obs.observe(origSuccess, { attributes: true, attributeFilter: ["style"] });
+    }
+  }
+
   async function loadReviews() {
     if (!db) return;
     try {
@@ -1237,18 +1269,21 @@ document.addEventListener("DOMContentLoaded", () => {
         .order("created_at", { ascending: false });
       if (!data || !data.length) return;
       const grid = document.getElementById("testimonialGrid");
+      // Prepend DB reviews BEFORE hard-coded cards so newest appear first
+      const firstHardCoded = grid.querySelector(".testimonial-card");
       data.forEach((r) => {
         const card = document.createElement("div");
         card.className = "testimonial-card";
         card.innerHTML = `<p>"${r.review}"</p><span>— ${r.name}${r.city ? ", " + r.city : ""}</span>`;
         revealObs.observe(card);
-        grid.appendChild(card);
+        grid.insertBefore(card, firstHardCoded);
         addDeleteBtn(card, true, r.id);
       });
-      // Re-sync arrows after reviews load
+      // Re-sync arrows after reviews load — scroll to start so newest shows first
       setTimeout(() => {
         const tPrev = document.getElementById("tPrev");
         const tNext = document.getElementById("tNext");
+        grid.scrollLeft = 0;
         if (grid && tPrev && tNext) syncArrows(grid, tPrev, tNext);
       }, 150);
     } catch (e) {
@@ -1445,8 +1480,7 @@ document.addEventListener("DOMContentLoaded", () => {
       .querySelectorAll(".tab-content")
       .forEach((t) => t.classList.remove("active"));
     document.getElementById(`tab-${tab}`).classList.add("active");
-    document.getElementById("adminTabTitle").textContent =
-      {
+    const tabLabel = {
         products: "Products",
         videos: "Videos",
         orders: "Orders",
@@ -1454,6 +1488,14 @@ document.addEventListener("DOMContentLoaded", () => {
         subscribers: "Subscribers",
         settings: "Settings",
       }[tab] || tab;
+    document.getElementById("adminTabTitle").textContent = tabLabel;
+    // Update mobile title and close dropdown
+    const mobileTitle = document.getElementById("sidebarMobileTitle");
+    if (mobileTitle) mobileTitle.textContent = tabLabel;
+    const nav = document.getElementById("sidebarNav");
+    const toggle = document.getElementById("sidebarNavToggle");
+    if (nav) nav.classList.remove("open");
+    if (toggle) toggle.classList.remove("open");
     sessionStorage.setItem("quint_admin_tab", tab);
     if (tab === "analytics") renderAnalytics();
     if (tab === "orders") loadAdminOrders();
@@ -1463,6 +1505,22 @@ document.addEventListener("DOMContentLoaded", () => {
     .forEach((link) =>
       link.addEventListener("click", () => switchTab(link.dataset.tab)),
     );
+
+  // Mobile hamburger toggle
+  const sidebarNavToggle = document.getElementById("sidebarNavToggle");
+  const sidebarNav = document.getElementById("sidebarNav");
+  if (sidebarNavToggle && sidebarNav) {
+    sidebarNavToggle.addEventListener("click", () => {
+      const isOpen = sidebarNav.classList.toggle("open");
+      sidebarNavToggle.classList.toggle("open", isOpen);
+    });
+  }
+
+  // Wire desktop duplicate close/logout buttons
+  document.getElementById("closeAdminBtnDesktop")
+    ?.addEventListener("click", () => document.getElementById("closeAdminBtn")?.click());
+  document.getElementById("logoutBtnDesktop")
+    ?.addEventListener("click", () => document.getElementById("logoutBtn")?.click());
 
   // ═══════════════════════════════════════════════════════════
   //  ADMIN — AUTO-FILL DESCRIPTION
