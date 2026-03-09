@@ -3255,6 +3255,40 @@ document.addEventListener("DOMContentLoaded", () => {
     document.body.style.overflow = "hidden";
     checkAdminSession();
   }
+
+  // Open admin via URL hash — e.g. yoursite.com/#admin
+  if (window.location.hash === "#admin") {
+    history.replaceState(null, "", window.location.pathname);
+    openAdminOverlay();
+  }
+  window.addEventListener("hashchange", () => {
+    if (window.location.hash === "#admin") {
+      history.replaceState(null, "", window.location.pathname);
+      openAdminOverlay();
+    }
+  });
+  // Secret mobile trigger: triple-tap the logo within 1 second
+  let _logoTaps = 0, _logoTimer = null;
+  const _logo = document.querySelector(".nav-logo");
+  if (_logo) {
+    _logo.addEventListener("click", (e) => {
+      _logoTaps++;
+      clearTimeout(_logoTimer);
+      if (_logoTaps >= 3) {
+        _logoTaps = 0;
+        e.preventDefault();
+        openAdminOverlay();
+      } else {
+        _logoTimer = setTimeout(() => { _logoTaps = 0; }, 1000);
+      }
+    });
+  }
+  // Secret keypress fallback: type "qadmin" anywhere on the page
+  let _keySeq = "";
+  document.addEventListener("keydown", (e) => {
+    _keySeq = (_keySeq + e.key).slice(-6);
+    if (_keySeq === "qadmin") { _keySeq = ""; openAdminOverlay(); }
+  });
 }); // end DOMContentLoaded
 
 // ===== Mobile Sidebar Toggle =====
