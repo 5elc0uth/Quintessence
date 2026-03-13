@@ -39,6 +39,29 @@ body {
   overflow-x: hidden;
 }
 
+/* ── Lucide icons — global sizing ── */
+[data-lucide] {
+  display: inline-block;
+  vertical-align: middle;
+  width: 1em;
+  height: 1em;
+  stroke-width: 1.75;
+  flex-shrink: 0;
+}
+/* Slightly larger in buttons and headings */
+button [data-lucide],
+h3 [data-lucide],
+h4 [data-lucide] {
+  width: 1.1em;
+  height: 1.1em;
+}
+/* Sidebar nav links */
+.sidebar-link [data-lucide] {
+  width: 16px;
+  height: 16px;
+  margin-right: 0.35rem;
+}
+
 h1,
 h2,
 h3 {
@@ -505,6 +528,8 @@ section {
 
 /* ===== ABOUT ===== */
 .about {
+  scroll-margin-top: 56px;
+  padding-top: 2rem;
   background: white;
   text-align: center;
 }
@@ -567,6 +592,8 @@ section {
 
 /* ===== PRODUCTS ===== */
 .products {
+  scroll-margin-top: 56px;
+  padding-top: 2rem;
   text-align: center;
   background: linear-gradient(135deg, var(--pink-bg), var(--pink-bg2));
   padding-bottom: 1.5rem;
@@ -834,6 +861,8 @@ section {
 
 /* ===== TESTIMONIALS ===== */
 .testimonials {
+  scroll-margin-top: 56px;
+  padding-top: 2rem;
   background: #fff5f7;
   text-align: center;
 }
@@ -1169,9 +1198,17 @@ section {
   background: linear-gradient(135deg, #fff0f5, #fce4ec);
 }
 .why-icon {
-  font-size: 1.9rem;
-  margin-bottom: 0.7rem;
+  margin-bottom: 0.9rem;
   transition: transform 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.why-icon [data-lucide] {
+  width: 2.2rem;
+  height: 2.2rem;
+  stroke: var(--pink-mid);
+  stroke-width: 1.5;
 }
 .why-item:hover .why-icon {
   transform: scale(1.08);
@@ -1662,6 +1699,9 @@ footer {
 .close-admin-btn:hover {
   background: rgba(247, 131, 172, 0.25);
 }
+.logout-btn [data-lucide="log-out"] {
+  transform: scaleX(-1);
+}
 .logout-btn {
   margin: 0.5rem 1.4rem 1.2rem;
   padding: 0.6rem 1rem;
@@ -1694,7 +1734,7 @@ footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 1.4rem 2rem 1rem;
+  padding: 1.2rem 2rem 0.8rem;
   border-bottom: 2px solid var(--pink-border);
   flex-wrap: wrap;
   gap: 0.8rem;
@@ -1724,7 +1764,7 @@ footer {
 }
 .tab-content.active {
   display: block;
-  padding: 1.8rem 2rem;
+  padding: 1.2rem 2rem 1.8rem;
   overflow-y: auto;
 }
 
@@ -2182,6 +2222,11 @@ footer {
 
 /* ── Tablet portrait (768px) ── */
 @media (max-width: 768px) {
+  .about,
+  .products,
+  .testimonials {
+    padding-top: 1.8rem;
+  }
   /* Swipe dots — mobile pagination for product/seller/testimonial carousels */
   .swipe-dots {
     display: flex;
@@ -2537,7 +2582,7 @@ footer {
     box-sizing: border-box;
   }
   .tab-content.active {
-    padding: 1.4rem 1rem 2.5rem;
+    padding: 1rem 1rem 2.5rem;
   }
 }
 
@@ -2545,6 +2590,11 @@ footer {
 @media (max-width: 480px) {
   section {
     padding: 2.2rem 1rem;
+  }
+  .about,
+  .products,
+  .testimonials {
+    padding-top: 1.6rem;
   }
 
   /* Navbar */
@@ -2770,7 +2820,7 @@ footer {
     box-sizing: border-box;
   }
   .tab-content.active {
-    padding: 1.4rem 1rem calc(4.5rem + env(safe-area-inset-bottom, 0px));
+    padding: 1rem 1rem calc(4.5rem + env(safe-area-inset-bottom, 0px));
   }
 }
 
@@ -3997,8 +4047,16 @@ footer {
   box-shadow: 0 8px 24px rgba(214, 51, 132, 0.13);
 }
 .analytics-stat-icon {
-  font-size: 1.5rem;
-  margin-bottom: 0.4rem;
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.analytics-stat-icon [data-lucide] {
+  width: 1.6rem;
+  height: 1.6rem;
+  stroke: var(--pink-mid);
+  stroke-width: 1.75;
 }
 .analytics-stat-value {
   font-size: 1.5rem;

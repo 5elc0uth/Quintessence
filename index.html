@@ -35,14 +35,15 @@
       rel="stylesheet"
     />
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
   </head>
   <body>
     <nav class="navbar" id="navbar">
       <div class="nav-inner">
         <a href="#" class="nav-logo" aria-label="Go to top">QUINTESSENCE</a>
         <div class="nav-links">
-          <a href="#products">Products</a>
           <a href="#about">About</a>
+          <a href="#products">Products</a>
           <a href="#testimonials">Reviews</a>
         </div>
         <button class="nav-cart-btn" id="cartToggleBtn" aria-label="Open cart">
@@ -71,12 +72,12 @@
           >Order Now</a
         >
         <button class="hamburger" id="hamburger" aria-label="Open menu">
-          &#9776;
+          <i data-lucide="menu" width="22" height="22"></i>
         </button>
       </div>
       <div class="mobile-menu" id="mobileMenu">
-        <a href="#products">Products</a>
         <a href="#about">About</a>
+        <a href="#products">Products</a>
         <a href="#testimonials">Reviews</a>
         <hr
           style="
@@ -285,14 +286,14 @@
         id="carouselPrev"
         aria-label="Previous slide"
       >
-        &#8592;
+        <i data-lucide="arrow-left"></i>
       </button>
       <button
         class="carousel-arrow carousel-next"
         id="carouselNext"
         aria-label="Next slide"
       >
-        &#8594;
+        <i data-lucide="arrow-right"></i>
       </button>
 
       <div class="carousel-dots" id="carouselDots">
@@ -381,7 +382,7 @@
             style="display: none"
             aria-label="Clear search"
           >
-            &#10005;
+            <i data-lucide="x"></i>
           </button>
         </div>
       </div>
@@ -394,7 +395,7 @@
           id="prodPrev"
           aria-label="Previous"
         >
-          &#8592;
+          <i data-lucide="arrow-left"></i>
         </button>
         <div class="product-carousel" id="productGrid">
           <div
@@ -419,7 +420,7 @@
           id="prodNext"
           aria-label="Next"
         >
-          &#8594;
+          <i data-lucide="arrow-right"></i>
         </button>
       </div>
       <div class="swipe-dots" id="prodDots"></div>
@@ -433,7 +434,7 @@
       <h2>Best Sellers</h2>
       <div class="carousel-wrap">
         <button class="bs-arrow bs-prev" id="bsPrev" aria-label="Previous">
-          &#8592;
+          <i data-lucide="arrow-left"></i>
         </button>
         <div class="carousel" id="bestSellersCarousel">
           <div class="seller-card skeleton" style="min-height: 280px"></div>
@@ -441,7 +442,7 @@
           <div class="seller-card skeleton" style="min-height: 280px"></div>
         </div>
         <button class="bs-arrow bs-next" id="bsNext" aria-label="Next">
-          &#8594;
+          <i data-lucide="arrow-right"></i>
         </button>
       </div>
       <div class="swipe-dots" id="bsDots"></div>
@@ -462,7 +463,7 @@
           id="tPrev"
           aria-label="Previous"
         >
-          &#8592;
+          <i data-lucide="arrow-left"></i>
         </button>
         <div class="testimonial-carousel" id="testimonialGrid">
           <div class="testimonial-card">
@@ -488,14 +489,14 @@
           </div>
         </div>
         <button class="bs-arrow t-arrow t-next" id="tNext" aria-label="Next">
-          &#8594;
+          <i data-lucide="arrow-right"></i>
         </button>
       </div>
       <div class="swipe-dots" id="tDots"></div>
       <div class="testimonial-submit-wrap">
         <button class="review-toggle-btn" id="reviewToggleBtn" aria-expanded="false">
-          <span>&#11088; Share Your Experience</span>
-          <span class="review-toggle-icon">&#43;</span>
+          <span>Share Your Experience</span>
+          <span class="review-toggle-icon"><i data-lucide="plus"></i></span>
         </button>
         <div class="review-form-body" id="reviewFormBody" hidden>
         <form id="testimonialForm" novalidate>
@@ -555,7 +556,7 @@
           </button>
         </form>
         <p class="t-success-msg" id="tSuccessMsg">
-          &#10003; Thank you! Your review has been submitted.
+          Thank you! Your review has been submitted.
         </p>
         </div><!-- /.review-form-body -->
       </div>
@@ -571,7 +572,7 @@
       </p>
       <div class="why-grid">
         <div class="why-item">
-          <div class="why-icon">&#128557;</div>
+          <div class="why-icon"><i data-lucide="clock"></i></div>
           <h3>Long-Lasting Scents</h3>
           <p>
             Our oils last 8–12 hours. Our sprays carry through meetings,
@@ -579,7 +580,7 @@
           </p>
         </div>
         <div class="why-item">
-          <div class="why-icon">&#128142;</div>
+          <div class="why-icon"><i data-lucide="tag"></i></div>
           <h3>Affordable Luxury</h3>
           <p>
             Fragrances that smell like ₦50k but won't cost you anywhere near it.
@@ -587,7 +588,7 @@
           </p>
         </div>
         <div class="why-item">
-          <div class="why-icon">&#11088;</div>
+          <div class="why-icon"><i data-lucide="shield-check"></i></div>
           <h3>Trusted &amp; Reliable</h3>
           <p>
             100+ happy customers across Nigeria. From Kaduna to Lagos to Jos —
@@ -683,7 +684,7 @@
         id="newsletterSuccess"
         style="display: none"
       >
-        &#10003; You're subscribed! Welcome to the Quintessence family.
+        You're subscribed! Welcome to the Quintessence family.
       </p>
     </section>
 
@@ -719,15 +720,15 @@
           >
         </div>
         <div class="footer-contact">
-          <p>&#128205; Kaduna, Nigeria</p>
+          <p><i data-lucide="map-pin"></i> Kaduna, Nigeria</p>
           <p>
-            &#128241;
+            <i data-lucide="phone"></i>
             <a id="footerWhatsappLink" href="https://wa.me/2348132386987"
               >+234 813 238 6987</a
             >
           </p>
           <p id="footerInstagramWrap" style="display: none">
-            &#128248;
+            <i data-lucide="instagram"></i>
             <a
               id="footerInstagramLink"
               href="#"
@@ -751,7 +752,7 @@
     >
       <div class="modal-box">
         <button class="modal-close" id="modalClose" aria-label="Close">
-          &#10005;
+          <i data-lucide="x"></i>
         </button>
         <div class="modal-img-wrap">
           <img id="modalImg" src="" alt="Product image" />
@@ -799,7 +800,7 @@
           <p class="modal-desc" id="modalDesc"></p>
           <div class="modal-actions" id="modalActions">
             <button class="cta-btn modal-cart-btn" id="modalAddToCart">
-              &#128722; Add to Cart
+              <i data-lucide="shopping-bag"></i> Add to Cart
             </button>
             <a
               id="modalCta"
@@ -824,7 +825,7 @@
           <!-- Out of stock state (US-20) -->
           <div class="modal-oos" id="modalOos" style="display: none">
             <p class="oos-label">
-              &#128683; This item is currently out of stock.
+              This item is currently out of stock.
             </p>
             <a
               id="modalNotifyBtn"
@@ -843,18 +844,18 @@
     <div class="cart-overlay" id="cartOverlay"></div>
     <aside class="cart-drawer" id="cartDrawer" aria-label="Shopping cart">
       <div class="cart-header">
-        <h3>&#128722; Your Cart</h3>
+        <h3><i data-lucide="shopping-bag"></i> Your Cart</h3>
         <button
           class="cart-close-btn"
           id="cartCloseBtn"
           aria-label="Close cart"
         >
-          &#10005;
+          <i data-lucide="x"></i>
         </button>
       </div>
       <div class="cart-body">
         <div class="cart-empty" id="cartEmpty">
-          <div style="font-size: 3rem; margin-bottom: 0.8rem">&#127873;</div>
+          <div style="margin-bottom: 0.8rem"><i data-lucide="gift" style="width:48px;height:48px;stroke-width:1.25;color:var(--pink-mid)"></i></div>
           <p>Your cart is empty</p>
           <small>Add products to start building your order</small>
         </div>
@@ -866,7 +867,7 @@
           <span id="cartTotal" class="cart-total-price">&#8358;0</span>
         </div>
         <button class="cta-btn cart-order-btn" id="cartCheckoutBtn">
-          &#128722; Checkout
+          <i data-lucide="shopping-bag"></i> Checkout
         </button>
         <button class="cart-clear-btn" id="cartClearBtn">Clear cart</button>
       </div>
@@ -903,7 +904,7 @@
           </button>
           <p class="login-error" id="loginError"></p>
           <button class="back-to-site-btn" id="backToSiteFromLogin">
-            &#8592; Back to site
+            <i data-lucide="arrow-left"></i> Back to site
           </button>
         </div>
       </div>
@@ -920,40 +921,40 @@
             </button>
             <span class="sidebar-mobile-title" id="sidebarMobileTitle">Products</span>
             <button class="close-admin-btn" id="closeAdminBtn" title="Back to Site">
-              <span class="btn-text">&#8592; Back to Site</span>
+              <span class="btn-text"><i data-lucide="arrow-left"></i> Back to Site</span>
             </button>
             <button class="logout-btn" id="logoutBtn" title="Logout">
-              <span class="btn-text">&#128682; Logout</span>
+              <span class="btn-text"><i data-lucide="log-out"></i> Logout</span>
             </button>
           </div>
           <!-- Nav links (desktop sidebar / mobile dropdown) -->
           <nav class="sidebar-nav" id="sidebarNav">
             <button class="sidebar-link active" data-tab="products">
-              &#128717; Products
+              <i data-lucide="package"></i> Products
             </button>
             <button class="sidebar-link" data-tab="videos">
-              &#127909; Videos
+              <i data-lucide="video"></i> Videos
             </button>
             <button class="sidebar-link" data-tab="orders">
-              &#128220; Orders
+              <i data-lucide="clipboard-list"></i> Orders
             </button>
             <button class="sidebar-link" data-tab="analytics">
-              &#128202; Analytics
+              <i data-lucide="bar-chart-2"></i> Analytics
             </button>
             <button class="sidebar-link" data-tab="subscribers">
-              &#128140; Subscribers
+              <i data-lucide="users"></i> Subscribers
             </button>
             <button class="sidebar-link" data-tab="settings">
-              &#9881; Settings
+              <i data-lucide="settings"></i> Settings
             </button>
           </nav>
           <!-- Desktop-only action buttons -->
           <div class="sidebar-actions">
             <button class="close-admin-btn" id="closeAdminBtnDesktop" title="Back to Site">
-              <span class="btn-text">&#8592; Back to Site</span>
+              <span class="btn-text"><i data-lucide="arrow-left"></i> Back to Site</span>
             </button>
             <button class="logout-btn" id="logoutBtnDesktop" title="Logout">
-              <span class="btn-text">&#128682; Logout</span>
+              <span class="btn-text"><i data-lucide="log-out"></i> Logout</span>
             </button>
           </div>
         </aside>
@@ -1059,15 +1060,15 @@
             <div class="analytics-grid" id="analyticsGrid"></div>
             <div class="analytics-charts">
               <div class="analytics-card">
-                <h4>&#128717; Products by Category</h4>
+                <h4><i data-lucide="package"></i> Products by Category</h4>
                 <div id="chartCategories" class="bar-chart"></div>
               </div>
               <div class="analytics-card">
-                <h4>&#128200; Subscribers Over Time</h4>
+                <h4><i data-lucide="trending-up"></i> Subscribers Over Time</h4>
                 <div id="chartSubscribers" class="bar-chart"></div>
               </div>
               <div class="analytics-card">
-                <h4>&#128220; Orders by Status</h4>
+                <h4><i data-lucide="clipboard-list"></i> Orders by Status</h4>
                 <div id="chartOrders" class="bar-chart"></div>
               </div>
             </div>
@@ -1090,7 +1091,7 @@
                   id="exportCsvBtn"
                   style="font-size: 0.8rem; padding: 0.5rem 1rem"
                 >
-                  &#11015; Export CSV
+                  <i data-lucide="download"></i> Export CSV
                 </button>
               </div>
             </div>
@@ -1117,7 +1118,7 @@
               id="campaignCard"
               style="margin-top: 1.5rem"
             >
-              <h4>&#128140; Send Email Campaign</h4>
+              <h4><i data-lucide="mail"></i> Send Email Campaign</h4>
               <p class="settings-hint">
                 Send a message to all your subscribers at once. They will
                 receive it by email.
@@ -1145,27 +1146,27 @@
                 <div class="review-suggestions" style="margin-bottom: 0.5rem">
                   <span
                     class="review-chip campaign-chip"
-                    data-subject="New arrivals at Quintessence! 🌸"
+                    data-subject="New arrivals at Quintessence!"
                     data-body="Hello! We have just dropped some fresh new fragrances. Visit our site to see the latest arrivals and place your order via WhatsApp. Smelling great has never been this easy!"
-                    >🆕 New Arrivals</span
+                    >New Arrivals</span
                   >
                   <span
                     class="review-chip campaign-chip"
-                    data-subject="Exclusive deal from Quintessence 💕"
+                    data-subject="Exclusive deal from Quintessence"
                     data-body="Hello! We have a special offer just for you. Reply to this email or reach us on WhatsApp to find out how to save on your next order. Limited time only!"
-                    >💰 Promo Deal</span
+                    >Promo Deal</span
                   >
                   <span
                     class="review-chip campaign-chip"
-                    data-subject="Thank you for being part of Quintessence 🙏"
+                    data-subject="Thank you for being part of Quintessence"
                     data-body="Hello! We just want to say a huge thank you for your support. You are the reason we do this. As a loyal subscriber, you are always first to hear about new products and offers from us."
-                    >🙏 Thank You</span
+                    >Thank You</span
                   >
                   <span
                     class="review-chip campaign-chip"
-                    data-subject="Restock alert from Quintessence ✅"
+                    data-subject="Restock alert from Quintessence"
                     data-body="Hello! Great news — some of our most popular products are back in stock. Head to the site now to secure yours before they sell out again!"
-                    >🔔 Restock Alert</span
+                    >Restock Alert</span
                   >
                 </div>
                 <textarea
@@ -1195,7 +1196,7 @@
                 "
               >
                 <button type="button" class="admin-btn" id="sendCampaignBtn">
-                  📋 Copy Message for WhatsApp
+                  <i data-lucide="copy"></i> Copy Message for WhatsApp
                 </button>
                 <span
                   id="campaignStatus"
@@ -1231,22 +1232,22 @@
                   <span
                     class="review-chip bio-chip"
                     data-text="Quintessence is a Kaduna-based fragrance brand offering premium perfume oils, body sprays, mists, and incense — carefully selected to leave a lasting impression wherever you go."
-                    >🌸 Classic</span
+                    >Classic</span
                   >
                   <span
                     class="review-chip bio-chip"
                     data-text="Born in Kaduna, built for everyone. Quintessence brings affordable luxury fragrances — from long-lasting perfume oils to refreshing body mists — straight to your door across Nigeria."
-                    >🇳🇬 Local Pride</span
+                    >Local Pride</span
                   >
                   <span
                     class="review-chip bio-chip"
                     data-text="Quintessence is your go-to fragrance destination. We stock premium oils, mists, body sprays, incense, baby colognes, and our signature Bloom Butter — all crafted to make you unforgettable."
-                    >📦 Full Range</span
+                    >Full Range</span
                   >
                   <span
                     class="review-chip bio-chip"
                     data-text="We believe smelling good shouldn't cost a fortune. Quintessence delivers luxury-grade fragrances at prices that make sense — trusted by hundreds of customers across Nigeria since 2022."
-                    >💰 Value Focus</span
+                    >Value Focus</span
                   >
                 </div>
                 <textarea
@@ -1344,7 +1345,7 @@
           id="closeProductModal"
           aria-label="Close"
         >
-          &#10005;
+          <i data-lucide="x"></i>
         </button>
         <h3 id="productModalTitle">Add Product</h3>
         <form id="productForm" novalidate>
@@ -1424,7 +1425,7 @@
                 accept="image/*"
                 aria-label="Upload product image"
               />
-              <p>&#128247; Click or drag image here</p>
+              <p><i data-lucide="image"></i> Click or drag image here</p>
             </div>
             <div id="imageCropWrap" style="display: none; margin-top: 10px">
               <canvas
@@ -1534,7 +1535,7 @@
                 accept="video/*"
                 aria-label="Upload product video"
               />
-              <p>&#127909; Click or drag a short product video here</p>
+              <p><i data-lucide="video"></i> Click or drag a short product video here</p>
             </div>
             <video
               id="productVideoPreview"
@@ -1558,7 +1559,7 @@
           </div>
           <div class="form-group checkbox-group">
             <label
-              ><input type="checkbox" id="productInStock" checked /> &#9989; In
+              ><input type="checkbox" id="productInStock" checked /> <i data-lucide="check-circle"></i> In
               Stock</label
             >
           </div>
@@ -1586,7 +1587,7 @@
           id="closeVideoModal"
           aria-label="Close"
         >
-          &#10005;
+          <i data-lucide="x"></i>
         </button>
         <h3>Add Video</h3>
         <form id="videoForm" novalidate>
@@ -1625,7 +1626,7 @@
                 accept="video/*"
                 aria-label="Upload video file"
               />
-              <p>&#127909; Click or drag video here</p>
+              <p><i data-lucide="video"></i> Click or drag video here</p>
             </div>
             <video
               id="videoPreview"
@@ -1693,7 +1694,7 @@
             id="closeVideoPreviewModal"
             aria-label="Close"
           >
-            &#10005;
+            <i data-lucide="x"></i>
           </button>
         </div>
 
@@ -1809,7 +1810,7 @@
             Close
           </button>
           <button type="button" class="admin-btn" id="applyVideoPreviewBtn">
-            &#10003; Apply to Site
+            <i data-lucide="check"></i> Apply to Site
           </button>
         </div>
       </div>
@@ -1829,7 +1830,7 @@
           id="closeDescHelperModal"
           aria-label="Close"
         >
-          &#10005;
+          <i data-lucide="x"></i>
         </button>
         <h3 style="margin-bottom: 0.4rem">Description Helper</h3>
 
@@ -1887,9 +1888,9 @@
     <div class="modal-overlay" id="checkoutModal" style="display: none">
       <div class="modal-box checkout-box">
         <button class="modal-close" id="checkoutClose" aria-label="Close">
-          &#10005;
+          <i data-lucide="x"></i>
         </button>
-        <h3 class="checkout-title">&#128722; Complete Your Order</h3>
+        <h3 class="checkout-title"><i data-lucide="shopping-bag"></i> Complete Your Order</h3>
         <div class="checkout-summary" id="checkoutSummary"></div>
         <div class="checkout-total-row">
           <span>Total</span>
@@ -1934,5 +1935,9 @@
         </button>
       </div>
     </div>
+  <script>
+    // Initialise Lucide icons — runs after DOM is ready
+    document.addEventListener("DOMContentLoaded", () => lucide.createIcons());
+  </script>
   </body>
 </html>
