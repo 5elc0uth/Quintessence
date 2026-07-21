@@ -28,14 +28,21 @@
     />
     <meta name="twitter:image" content="assets/quint_img_allstar.jpg" />
     <meta name="theme-color" content="#c4587a" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="color-scheme" content="light" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="commercial.css" />
     <link rel="icon" href="assets/favicon.png" />
     <link
       href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;1,500&family=Poppins:wght@300;400;500;600&display=swap"
       rel="stylesheet"
     />
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script defer src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
   </head>
   <body>
     <nav class="navbar" id="navbar">
@@ -71,7 +78,7 @@
           class="nav-cta"
           >Order Now</a
         >
-        <button class="hamburger" id="hamburger" aria-label="Open menu">
+        <button class="hamburger" id="hamburger" aria-label="Open menu" aria-expanded="false" aria-controls="mobileMenu">
           <i data-lucide="menu" width="22" height="22"></i>
         </button>
       </div>
@@ -79,6 +86,11 @@
         <a href="#about">About</a>
         <a href="#products">Products</a>
         <a href="#testimonials">Reviews</a>
+        <a
+          id="mobileOrderBtn"
+          class="mobile-menu-order"
+          href="https://wa.me/2348132386987?text=Hello,%20I%27d%20like%20to%20make%20an%20enquiry%20about%20your%20perfumes."
+        >Order via WhatsApp</a>
         <hr
           style="
             border: none;
@@ -356,6 +368,9 @@
     <!-- PRODUCTS -->
     <section class="products" id="products">
       <h2>Our Products</h2>
+      <p class="product-section-intro">
+        Discover fragrances and personal-care favourites selected for everyday wear, gifting, and memorable moments.
+      </p>
       <div class="product-search-wrap">
         <div class="search-input-wrap">
           <svg
@@ -967,10 +982,20 @@
           <div id="tab-products" class="tab-content active">
             <div class="section-header">
               <h3>All Products</h3>
-              <button class="admin-btn" id="openAddProductModal">
-                + Add Product
-              </button>
+              <div class="admin-product-actions">
+                <button class="admin-btn admin-btn-secondary" id="openBulkProductModal" type="button">
+                  <i data-lucide="list-plus"></i> Add Multiple
+                </button>
+                <button class="admin-btn" id="openAddProductModal" type="button">
+                  <i data-lucide="plus"></i> Add Product
+                </button>
+              </div>
             </div>
+            <div
+              class="admin-category-summary"
+              id="productCategorySummary"
+              aria-label="Product count by category"
+            ></div>
             <div class="admin-table-wrap">
               <div class="admin-table-wrapper">
                 <table class="admin-table">
@@ -1118,10 +1143,10 @@
               id="campaignCard"
               style="margin-top: 1.5rem"
             >
-              <h4><i data-lucide="mail"></i> Send Email Campaign</h4>
+              <h4><i data-lucide="megaphone"></i> Prepare Broadcast Campaign</h4>
               <p class="settings-hint">
-                Send a message to all your subscribers at once. They will
-                receive it by email.
+                Prepare a campaign message, then copy it into a WhatsApp
+                Broadcast List. Use Export CSV for Mailchimp or Brevo email campaigns.
               </p>
               <div class="form-group" style="margin-top: 0.8rem">
                 <label for="campaignSubject">Subject Line *</label>
@@ -1579,6 +1604,141 @@
       </div>
     </div>
 
+
+    <!-- BULK PRODUCT FORM MODAL -->
+    <div class="admin-modal-overlay" id="bulkProductModal" aria-hidden="true">
+      <div
+        class="admin-modal-box bulk-product-modal-box"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="bulkProductModalTitle"
+      >
+        <button
+          class="admin-modal-close"
+          id="closeBulkProductModal"
+          type="button"
+          aria-label="Close"
+        >
+          <i data-lucide="x"></i>
+        </button>
+        <h3 id="bulkProductModalTitle">Add Multiple Products</h3>
+        <p class="bulk-product-intro">
+          Choose one category, add as many individual products as required, then save them together. Each item remains a separate product and can be edited independently afterwards.
+        </p>
+        <form id="bulkProductForm" novalidate>
+          <div class="bulk-category-grid">
+            <div class="form-group">
+              <label for="bulkProductCategory">Category *</label>
+              <select id="bulkProductCategory" required>
+                <option value="" disabled selected>— Select a category —</option>
+                <option value="Air Freshener">Air Freshener</option>
+                <option value="Baby Cologne">Baby Cologne</option>
+                <option value="Bloom Butter">Bloom Butter</option>
+                <option value="Body Mist">Body Mist</option>
+                <option value="Body Spray">Body Spray</option>
+                <option value="Hand Cream">Hand Cream</option>
+                <option value="Incense">Incense</option>
+                <option value="Perfume Oils">Perfume Oils</option>
+                <option value="__other__">Other (type your own)…</option>
+              </select>
+            </div>
+            <div class="form-group" id="bulkCustomCategoryGroup" hidden>
+              <label for="bulkProductCategoryCustom">Custom category *</label>
+              <input
+                type="text"
+                id="bulkProductCategoryCustom"
+                maxlength="40"
+                placeholder="e.g. Room Spray"
+              />
+            </div>
+          </div>
+
+          <div class="bulk-product-list" id="bulkProductRows"></div>
+
+          <div class="bulk-add-row-wrap">
+            <button
+              type="button"
+              class="admin-btn admin-btn-secondary"
+              id="addBulkProductRow"
+            >
+              <i data-lucide="plus-circle"></i> Add another item
+            </button>
+          </div>
+
+          <p class="bulk-status" id="bulkProductStatus" role="status" aria-live="polite"></p>
+
+          <div class="form-actions">
+            <button
+              type="button"
+              class="admin-btn cancel-btn"
+              id="cancelBulkProductModal"
+            >
+              Cancel
+            </button>
+            <button type="submit" class="admin-btn" id="saveBulkProductsBtn">
+              Save All Products
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <template id="bulkProductRowTemplate">
+      <article class="bulk-product-row">
+        <div class="bulk-product-row-header">
+          <span class="bulk-product-row-title">Item <span data-row-number></span></span>
+          <button
+            type="button"
+            class="bulk-remove-row"
+            data-remove-row
+            aria-label="Remove this item"
+            title="Remove item"
+          >
+            <i data-lucide="trash-2"></i>
+          </button>
+        </div>
+        <div class="bulk-row-grid">
+          <div class="form-group">
+            <label>Product name *</label>
+            <input
+              type="text"
+              data-field="name"
+              maxlength="100"
+              placeholder="e.g. Rose Oud Perfume Oil"
+            />
+          </div>
+          <div class="form-group">
+            <label>Price (&#8358;) *</label>
+            <input
+              type="number"
+              data-field="price"
+              min="0"
+              step="0.01"
+              inputmode="decimal"
+              placeholder="e.g. 5000"
+            />
+          </div>
+          <div class="form-group bulk-row-description">
+            <label>Description</label>
+            <textarea
+              data-field="description"
+              rows="2"
+              maxlength="600"
+              placeholder="Short description of this product..."
+            ></textarea>
+          </div>
+          <div class="form-group bulk-row-image">
+            <label>Product image <span style="font-weight:400;color:#888">(optional)</span></label>
+            <input type="file" data-field="image" accept="image/jpeg,image/png,image/webp" />
+          </div>
+          <div class="form-group bulk-row-flags">
+            <label><input type="checkbox" data-field="bestSeller" /> Best seller</label>
+            <label><input type="checkbox" data-field="inStock" checked /> In stock</label>
+          </div>
+        </div>
+      </article>
+    </template>
+
     <!-- VIDEO FORM MODAL -->
     <div class="admin-modal-overlay" id="videoFormModal">
       <div class="admin-modal-box">
@@ -1816,7 +1976,6 @@
       </div>
     </div>
 
-    <script src="script.js"></script>
     <!-- DESCRIPTION HELPER MODAL (AI / Fix) -->
     <div class="admin-modal-overlay" id="descHelperModal" aria-hidden="true">
       <div
@@ -1935,6 +2094,7 @@
         </button>
       </div>
     </div>
+  <script defer src="script.js"></script>
   <script>
     // Initialise Lucide icons — runs after DOM is ready
     document.addEventListener("DOMContentLoaded", () => lucide.createIcons());

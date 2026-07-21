@@ -105,10 +105,24 @@ document.addEventListener("DOMContentLoaded", () => {
   // ═══════════════════════════════════════════════════════════
   function showToast(msg, type = "success") {
     const t = document.getElementById("toast");
+    if (!t) return;
     t.textContent = msg;
     t.className = `toast show ${type}`;
     clearTimeout(t._timer);
     t._timer = setTimeout(() => t.classList.remove("show"), 3500);
+  }
+
+  function escapeHtml(value) {
+    return String(value ?? "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
+  }
+
+  function escapeAttribute(value) {
+    return escapeHtml(value).replaceAll("`", "&#096;");
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -126,14 +140,30 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const hamburger = document.getElementById("hamburger");
   const mobileMenu = document.getElementById("mobileMenu");
-  hamburger.addEventListener("click", () =>
-    mobileMenu.classList.toggle("open"),
+
+  function setMobileMenu(open) {
+    if (!hamburger || !mobileMenu) return;
+    mobileMenu.classList.toggle("open", open);
+    hamburger.setAttribute("aria-expanded", String(open));
+    hamburger.setAttribute("aria-label", open ? "Close menu" : "Open menu");
+  }
+
+  hamburger?.addEventListener("click", () =>
+    setMobileMenu(!mobileMenu.classList.contains("open")),
   );
   mobileMenu
-    .querySelectorAll("a")
-    .forEach((l) =>
-      l.addEventListener("click", () => mobileMenu.classList.remove("open")),
-    );
+    ?.querySelectorAll("a")
+    .forEach((link) => link.addEventListener("click", () => setMobileMenu(false)));
+
+  document.addEventListener("click", (event) => {
+    if (!mobileMenu?.classList.contains("open")) return;
+    if (mobileMenu.contains(event.target) || hamburger?.contains(event.target)) return;
+    setMobileMenu(false);
+  });
+
+  window.addEventListener("resize", () => {
+    if (window.innerWidth >= 900) setMobileMenu(false);
+  });
 
   // ═══════════════════════════════════════════════════════════
   //  HERO CAROUSEL
@@ -344,7 +374,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
   // Start hidden, appear on hero hover
   fadeHeroArrows();
-  const heroSection = document.querySelector(".hero");
+  const heroSection = document.querySelector(".hero-carousel");
   if (heroSection) {
     heroSection.addEventListener("mouseenter", showHeroArrows);
     heroSection.addEventListener("mouseleave", () => {
@@ -876,23 +906,56 @@ document.addEventListener("DOMContentLoaded", () => {
       </tr>`;
       })
       .join("");
+    // QUINTESSENCE ORDER STATUS SAFETY START
     tbody.querySelectorAll(".order-status-select").forEach((sel) => {
+      sel.dataset.currentStatus = sel.value;
       sel.addEventListener("change", async () => {
-        await db
-          .from("orders")
-          .update({ status: sel.value })
-          .eq("id", sel.dataset.id);
-        showToast(`Order updated to ${sel.value}`);
+        const previousStatus = sel.dataset.currentStatus || sel.value;
+        const nextStatus = sel.value;
+        sel.disabled = true;
+        try {
+          const { error } = await db
+            .from("orders")
+            .update({ status: nextStatus })
+            .eq("id", sel.dataset.id);
+          if (error) throw error;
+          sel.dataset.currentStatus = nextStatus;
+          showToast(`Order updated to ${nextStatus}`);
+        } catch (error) {
+          sel.value = previousStatus;
+          showToast(
+            "Order update failed: " + (error?.message || "Unknown error"),
+            "error",
+          );
+        } finally {
+          sel.disabled = false;
+        }
       });
     });
+    // QUINTESSENCE ORDER STATUS SAFETY END
+    // QUINTESSENCE ORDER DELETE SAFETY START
     tbody.querySelectorAll(".order-delete-btn").forEach((btn) => {
       btn.addEventListener("click", async () => {
         if (!confirm("Delete this order?")) return;
-        await db.from("orders").delete().eq("id", btn.dataset.id);
-        showToast("Order deleted.");
-        loadAdminOrders();
+        btn.disabled = true;
+        try {
+          const { error } = await db
+            .from("orders")
+            .delete()
+            .eq("id", btn.dataset.id);
+          if (error) throw error;
+          showToast("Order deleted.");
+          await loadAdminOrders();
+        } catch (error) {
+          btn.disabled = false;
+          showToast(
+            "Order delete failed: " + (error?.message || "Unknown error"),
+            "error",
+          );
+        }
       });
     });
+    // QUINTESSENCE ORDER DELETE SAFETY END
     if (adminMain)
       requestAnimationFrame(() => {
         adminMain.scrollTop = scrollTop;
@@ -903,22 +966,43 @@ document.addEventListener("DOMContentLoaded", () => {
   //  ANALYTICS DASHBOARD
   // ═══════════════════════════════════════════════════════════
   async function renderAnalytics() {
-    if (!db) return;
-    const safeQuery = async (fn) => {
+    // QUINTESSENCE ANALYTICS SAFETY START
+    const grid = document.getElementById("analyticsGrid");
+    if (!grid) return;
+    if (!db) {
+      grid.innerHTML =
+        '<div class="analytics-query-warning">Analytics is unavailable because the database is not connected.</div>';
+      return;
+    }
+
+    grid.setAttribute("aria-busy", "true");
+    grid.innerHTML =
+      '<div class="analytics-loading-card">Loading live analyticsâ€¦</div>';
+
+    const analyticsErrors = [];
+    const safeQuery = async (label, fn) => {
       try {
-        const r = await fn();
-        return r.data || [];
-      } catch (e) {
+        const result = await fn();
+        if (result.error) throw result.error;
+        return result.data || [];
+      } catch (error) {
+        analyticsErrors.push(label);
+        console.error(`Analytics query failed for ${label}:`, error);
         return [];
       }
     };
     const [prods, subs, revs, ords, vids] = await Promise.all([
-      safeQuery(() => db.from("products").select("*")),
-      safeQuery(() => db.from("subscribers").select("created_at")),
-      safeQuery(() => db.from("reviews").select("rating")),
-      safeQuery(() => db.from("orders").select("status,total,created_at")),
-      safeQuery(() => db.from("videos").select("id")),
+      safeQuery("products", () => db.from("products").select("*")),
+      safeQuery("subscribers", () =>
+        db.from("subscribers").select("created_at"),
+      ),
+      safeQuery("reviews", () => db.from("reviews").select("rating")),
+      safeQuery("orders", () =>
+        db.from("orders").select("status,total,created_at"),
+      ),
+      safeQuery("videos", () => db.from("videos").select("id")),
     ]);
+    // QUINTESSENCE ANALYTICS SAFETY END
     const totalRevenue = ords
       .filter((o) => o.status !== "Cancelled")
       .reduce((s, o) => s + Number(o.total || 0), 0);
@@ -964,18 +1048,23 @@ document.addEventListener("DOMContentLoaded", () => {
         value: ords.filter((o) => o.status === "Delivered").length,
       },
     ];
-    const grid = document.getElementById("analyticsGrid");
-    if (grid)
-      grid.innerHTML = statCards
-        .map(
-          (c) => `
+    grid.innerHTML = statCards
+      .map(
+        (c) => `
       <div class="analytics-stat-card">
         <div class="analytics-stat-icon"><i data-lucide="${c.icon}"></i></div>
         <div class="analytics-stat-value">${c.value}</div>
         <div class="analytics-stat-label">${c.label}</div>
       </div>`,
-        )
-        .join("");
+      )
+      .join("");
+    grid.setAttribute("aria-busy", "false");
+    if (analyticsErrors.length) {
+      grid.insertAdjacentHTML(
+        "afterbegin",
+        `<div class="analytics-query-warning">Some live analytics could not load: ${analyticsErrors.join(", ")}.</div>`,
+      );
+    }
     if (window.lucide) lucide.createIcons();
     function renderBarChart(id, data) {
       const el = document.getElementById(id);
@@ -1144,96 +1233,168 @@ document.addEventListener("DOMContentLoaded", () => {
     const grid = document.getElementById("productGrid");
     const bar = document.getElementById("productFilter");
     const section = document.getElementById("products");
+    const emptyEl = document.getElementById("searchEmpty");
+    const emptyTerm = document.getElementById("searchEmptyTerm");
 
-    // Strip hidden products first — visible-only drives everything
-    const visible = products.filter((p) => !p.is_hidden);
+    if (!grid || !bar) return;
 
-    // If nothing visible at all, hide the whole section
+    const visible = products.filter((product) => !product.is_hidden);
+
     if (!visible.length) {
       if (section) section.style.display = "none";
       return;
     }
     if (section) section.style.display = "";
 
-    // Build filter tabs from visible products only
-    const cats = ["all", ...new Set(visible.map((p) => p.category))];
-    bar.innerHTML = cats
+    const categoryCounts = visible.reduce((counts, product) => {
+      const category = String(product.category || "Other").trim() || "Other";
+      counts.set(category, (counts.get(category) || 0) + 1);
+      return counts;
+    }, new Map());
+
+    const categories = [...categoryCounts.keys()].sort((a, b) =>
+      a.localeCompare(b, undefined, { sensitivity: "base" }),
+    );
+
+    if (filter !== "all" && !categoryCounts.has(filter)) filter = "all";
+
+    const filterItems = [
+      { value: "all", label: "All", count: visible.length },
+      ...categories.map((category) => ({
+        value: category,
+        label: category,
+        count: categoryCounts.get(category),
+      })),
+    ];
+
+    bar.innerHTML = filterItems
       .map(
-        (c) =>
-          `<button class="filter-btn${c === filter ? " active" : ""}" data-filter="${c}">${c === "all" ? "All" : c}</button>`,
+        ({ value, label, count }) => `
+          <button
+            type="button"
+            class="filter-btn${value === filter ? " active" : ""}"
+            data-filter="${escapeAttribute(value)}"
+            aria-pressed="${value === filter}"
+          >
+            <span>${escapeHtml(label)}</span>
+            <span class="filter-count" aria-label="${count} products">${count}</span>
+          </button>`,
       )
       .join("");
-    bar.querySelectorAll(".filter-btn").forEach((b) =>
-      b.addEventListener("click", () => {
-        const q = document.getElementById("productSearch").value;
-        renderProducts(products, b.dataset.filter, q);
+
+    bar.querySelectorAll(".filter-btn").forEach((button) =>
+      button.addEventListener("click", () => {
+        searchFilter = button.dataset.filter || "all";
+        const query = document.getElementById("productSearch")?.value || "";
+        renderProducts(products, searchFilter, query);
       }),
     );
 
-    // Filter by category and search from the visible list
     let list =
-      filter === "all" ? visible : visible.filter((p) => p.category === filter);
+      filter === "all"
+        ? visible
+        : visible.filter(
+            (product) => String(product.category || "Other") === filter,
+          );
 
-    // Search filter (US-19)
-    const q = search.trim().toLowerCase();
-    if (q) {
-      list = list.filter(
-        (p) =>
-          p.name.toLowerCase().includes(q) ||
-          (p.description && p.description.toLowerCase().includes(q)) ||
-          p.category.toLowerCase().includes(q),
-      );
+    const query = search.trim().toLowerCase();
+    if (query) {
+      list = list.filter((product) => {
+        const searchable = [
+          product.name,
+          product.description,
+          product.category,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+        return searchable.includes(query);
+      });
     }
 
-    const emptyEl = document.getElementById("searchEmpty");
-    const emptyTerm = document.getElementById("searchEmptyTerm");
     if (!list.length) {
       grid.innerHTML = "";
-      if (q) {
+      if (query && emptyEl && emptyTerm) {
         emptyEl.style.display = "block";
-        emptyTerm.textContent = q;
+        emptyTerm.textContent = search.trim();
       } else {
-        grid.innerHTML = `<div style="padding:2rem 1rem;text-align:center;color:#c084a0;font-size:0.92rem;opacity:0.7;">No products in this category.</div>`;
-        emptyEl.style.display = "none";
+        grid.innerHTML = `
+          <div class="catalogue-empty-state" role="status">
+            No products are currently available in this category.
+          </div>`;
+        if (emptyEl) emptyEl.style.display = "none";
       }
       return;
     }
-    emptyEl.style.display = "none";
+
+    if (emptyEl) emptyEl.style.display = "none";
 
     grid.innerHTML = list
-      .map((p) => {
-        const inStock = p.is_in_stock !== false;
-        const imgSrc = p.image_url || "";
-        const imgTag = imgSrc
-          ? `<img src="${imgSrc}" alt="${p.name}" onerror="var ph=this.parentNode.querySelector('.card-img-placeholder');this.style.display='none';if(ph)ph.style.display='flex'"/>
-           <div class="card-img-placeholder" style="display:none;">🌸</div>`
-          : `<div class="card-img-placeholder">🌸</div>`;
+      .map((product) => {
+        const inStock = product.is_in_stock !== false;
+        const imageUrl = product.image_url || "";
+        const productName = escapeHtml(product.name || "Unnamed product");
+        const category = escapeHtml(product.category || "Other");
+        const imageMarkup = imageUrl
+          ? `<img src="${escapeAttribute(imageUrl)}" alt="${escapeAttribute(product.name || "Product")}" loading="lazy" decoding="async" />
+             <div class="card-img-placeholder" hidden aria-hidden="true">🌸</div>`
+          : `<div class="card-img-placeholder" aria-hidden="true">🌸</div>`;
+
         return `
-      <div class="card${inStock ? "" : " out-of-stock"}" data-id="${p.id}">
-        ${imgTag}
-        <div class="card-info">
-          ${!inStock ? '<span class="card-stock-badge">Out of Stock</span>' : ""}
-          <p class="card-name">${p.name}</p>
-          ${p.price ? `<p class="card-price">₦${Number(p.price).toLocaleString()}</p>` : ""}
-          <button class="cta-btn card-enquire"${!inStock ? " disabled" : ""}>${inStock ? "Enquire" : "Sold Out"}</button>
-        </div>
-      </div>`;
+          <article
+            class="card${inStock ? "" : " out-of-stock"}"
+            data-id="${escapeAttribute(product.id)}"
+            tabindex="0"
+            role="button"
+            aria-label="View ${escapeAttribute(product.name || "product")}"
+            >
+            ${imageMarkup}
+            <div class="card-info">
+              ${!inStock ? '<span class="card-stock-badge">Out of Stock</span>' : ""}
+              <p class="card-category">${category}</p>
+              <p class="card-name">${productName}</p>
+              ${product.price !== null && product.price !== undefined ? `<p class="card-price">₦${Number(product.price).toLocaleString()}</p>` : ""}
+              <button
+                type="button"
+                class="cta-btn card-enquire"
+                ${!inStock ? "disabled" : ""}
+                aria-label="${inStock ? `View ${escapeAttribute(product.name || "product")}` : `${escapeAttribute(product.name || "Product")} is sold out`}"
+              >
+                ${inStock ? "View product" : "Sold out"}
+              </button>
+            </div>
+          </article>`;
       })
       .join("");
 
-    grid.querySelectorAll(".card").forEach((card, i) => {
-      card.querySelector(".card-enquire").addEventListener("click", (e) => {
-        e.stopPropagation();
-        openProductModal(list[i]);
-      });
-      card.addEventListener("click", () => openProductModal(list[i]));
-      setTimeout(() => card.classList.add("reveal", "visible"), i * 40);
-    });
+    const productById = new Map(list.map((product) => [String(product.id), product]));
 
-    // Re-sync product arrows after render (card count may change with filters)
-    if (typeof _origSyncProd === "function") _origSyncProd();
-    // Rebuild swipe dots after products render
-    setTimeout(() => initSwipeDots("productGrid", "prodDots"), 60);
+    grid.querySelectorAll(".card").forEach((card, index) => {
+      const product = productById.get(String(card.dataset.id));
+      if (!product) return;
+
+      const image = card.querySelector("img");
+      if (image) {
+        image.addEventListener("error", () => {
+          image.hidden = true;
+          const placeholder = card.querySelector(".card-img-placeholder");
+          if (placeholder) placeholder.hidden = false;
+        });
+      }
+
+      card.querySelector(".card-enquire")?.addEventListener("click", (event) => {
+        event.stopPropagation();
+        openProductModal(product);
+      });
+      card.addEventListener("click", () => openProductModal(product));
+      card.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          openProductModal(product);
+        }
+      });
+      setTimeout(() => card.classList.add("reveal", "visible"), index * 35);
+    });
   }
 
   // ── Product search events ──────────────────────────────────
@@ -2042,6 +2203,35 @@ document.addEventListener("DOMContentLoaded", () => {
   // ═══════════════════════════════════════════════════════════
   let editingProductId = null;
 
+  function renderAdminCategorySummary(products) {
+    const summary = document.getElementById("productCategorySummary");
+    if (!summary) return;
+
+    const counts = products.reduce((map, product) => {
+      const category = String(product.category || "Other").trim() || "Other";
+      map.set(category, (map.get(category) || 0) + 1);
+      return map;
+    }, new Map());
+
+    summary.replaceChildren();
+    [...counts.entries()]
+      .sort(([a], [b]) => a.localeCompare(b, undefined, { sensitivity: "base" }))
+      .forEach(([category, count]) => {
+        const chip = document.createElement("span");
+        chip.className = "admin-category-chip";
+        const label = document.createElement("span");
+        label.textContent = category;
+        const value = document.createElement("strong");
+        value.textContent = String(count);
+        value.setAttribute(
+          "aria-label",
+          `${count} product${count === 1 ? "" : "s"}`,
+        );
+        chip.append(label, value);
+        summary.appendChild(chip);
+      });
+  }
+
   async function loadAdminProducts() {
     const adminMain = document.querySelector(".admin-main");
     const scrollTop = adminMain ? adminMain.scrollTop : 0;
@@ -2053,36 +2243,46 @@ document.addEventListener("DOMContentLoaded", () => {
       .select("*")
       .order("created_at", { ascending: false });
     if (error) {
-      tbody.innerHTML = `<tr><td colspan="7" class="error-cell">${error.message}</td></tr>`;
+      renderAdminCategorySummary([]);
+      tbody.innerHTML = `<tr><td colspan="7" class="error-cell">${escapeHtml(error.message)}</td></tr>`;
       if (adminMain) adminMain.scrollTop = scrollTop;
       return;
     }
     if (!data.length) {
+      renderAdminCategorySummary([]);
       tbody.innerHTML =
-        '<tr><td colspan="7" class="loading-cell">No products yet. Click "+ Add Product".</td></tr>';
+        '<tr><td colspan="7" class="loading-cell">No products yet. Use “Add Product” or “Add Multiple”.</td></tr>';
       if (adminMain) adminMain.scrollTop = scrollTop;
       return;
     }
+    renderAdminCategorySummary(data);
     tbody.innerHTML = data
       .map((p) => {
         const inStock = p.is_in_stock !== false;
+        const safeId = escapeAttribute(p.id);
+        const safeName = escapeHtml(p.name || "Unnamed product");
+        const safeCategory = escapeHtml(p.category || "Other");
+        const safeImageUrl = escapeAttribute(p.image_url || "");
+        const safePrice = Number.isFinite(Number(p.price))
+          ? Number(p.price).toLocaleString()
+          : "0";
         return `
       <tr>
-        <td data-label="Image"><img src="${p.image_url || ""}" class="table-thumb" alt="${p.name}" onerror="this.style.display='none'"/></td>
-        <td data-label="Name"><strong>${p.name}</strong></td>
-        <td data-label="Category">${p.category}</td>
-        <td data-label="Price">₦${Number(p.price).toLocaleString()}</td>
+        <td data-label="Image"><img src="${safeImageUrl}" class="table-thumb" alt="${escapeAttribute(p.name || "Product")}" onerror="this.style.display='none'"/></td>
+        <td data-label="Name"><strong>${safeName}</strong></td>
+        <td data-label="Category">${safeCategory}</td>
+        <td data-label="Price">₦${safePrice}</td>
         <td data-label="Best Seller"><span class="badge ${p.is_best_seller ? "badge-green" : "badge-grey"}">${p.is_best_seller ? "Yes" : "No"}</span></td>
         <td data-label="Stock">
-          <button class="stock-toggle-btn ${inStock ? "in-stock" : "out-stock"}" data-id="${p.id}" data-stock="${inStock}">
+          <button class="stock-toggle-btn ${inStock ? "in-stock" : "out-stock"}" data-id="${safeId}" data-stock="${inStock}">
             ${inStock ? `<i data-lucide="check-circle" style="width:13px;height:13px;vertical-align:middle"></i> In Stock` : `<i data-lucide="x-circle" style="width:13px;height:13px;vertical-align:middle"></i> Out of Stock`}
           </button>
         </td>
         <td data-label="Actions" class="actions-cell">
           <div class="actions-cell-inner">
-            <button class="action-btn edit-btn" data-id="${p.id}">✏️ Edit</button>
-            <button class="action-btn hide-btn ${p.is_hidden ? "hidden-active" : ""}" data-id="${p.id}" data-hidden="${!!p.is_hidden}">${p.is_hidden ? `<i data-lucide="eye" style="width:13px;height:13px;vertical-align:middle"></i> Show` : `<i data-lucide="eye-off" style="width:13px;height:13px;vertical-align:middle"></i> Hide`}</button>
-            <button class="action-btn delete-btn" data-id="${p.id}">🗑️ Delete</button>
+            <button class="action-btn edit-btn" data-id="${safeId}">✏️ Edit</button>
+            <button class="action-btn hide-btn ${p.is_hidden ? "hidden-active" : ""}" data-id="${safeId}" data-hidden="${!!p.is_hidden}">${p.is_hidden ? `<i data-lucide="eye" style="width:13px;height:13px;vertical-align:middle"></i> Show` : `<i data-lucide="eye-off" style="width:13px;height:13px;vertical-align:middle"></i> Hide`}</button>
+            <button class="action-btn delete-btn" data-id="${safeId}">🗑️ Delete</button>
           </div>
         </td>
       </tr>`;
@@ -2166,7 +2366,20 @@ document.addEventListener("DOMContentLoaded", () => {
     editingProductId = id;
     document.getElementById("productModalTitle").textContent = "Edit Product";
     document.getElementById("productName").value = p.name;
-    document.getElementById("productCategory").value = p.category || "";
+    const categorySelect = document.getElementById("productCategory");
+    const customCategoryInput = document.getElementById("productCategoryCustom");
+    const hasPredefinedCategory = [...categorySelect.options].some(
+      (option) => option.value === p.category,
+    );
+    if (hasPredefinedCategory) {
+      categorySelect.value = p.category || "";
+      customCategoryInput.value = "";
+      customCategoryInput.style.display = "none";
+    } else {
+      categorySelect.value = "__other__";
+      customCategoryInput.value = p.category || "";
+      customCategoryInput.style.display = "block";
+    }
     document.getElementById("productPrice").value = p.price;
     document.getElementById("productDesc").value = p.description || "";
     document.getElementById("productBestSeller").checked = p.is_best_seller;
@@ -2392,8 +2605,6 @@ document.addEventListener("DOMContentLoaded", () => {
           document.getElementById("imagePreview").src = url;
           document.getElementById("imagePreview").style.display = "block";
           document.getElementById("imageCropWrap").style.display = "none";
-          const __applyRow = document.getElementById("cropApplyRow");
-          if (__applyRow) __applyRow.style.display = "none";
         },
         "image/jpeg",
         0.88,
@@ -2659,6 +2870,297 @@ document.addEventListener("DOMContentLoaded", () => {
     // Do not close on backdrop click (prevents accidental loss of work)
     if (e.target === document.getElementById("productFormModal")) return;
   });
+
+
+  // ═══════════════════════════════════════════════════════════
+  //  ADMIN — BULK PRODUCT ENTRY
+  //  Creates several independent product rows under one category.
+  // ═══════════════════════════════════════════════════════════
+  const bulkProductModal = document.getElementById("bulkProductModal");
+  const bulkProductRows = document.getElementById("bulkProductRows");
+  const bulkProductTemplate = document.getElementById("bulkProductRowTemplate");
+  const bulkProductCategory = document.getElementById("bulkProductCategory");
+  const bulkCustomCategoryGroup = document.getElementById(
+    "bulkCustomCategoryGroup",
+  );
+  const bulkProductCategoryCustom = document.getElementById(
+    "bulkProductCategoryCustom",
+  );
+  const bulkProductStatus = document.getElementById("bulkProductStatus");
+  const saveBulkProductsBtn = document.getElementById("saveBulkProductsBtn");
+  const MAX_BULK_PRODUCTS = 25;
+  const MAX_BULK_IMAGE_BYTES = 8 * 1024 * 1024;
+  let bulkSaveInProgress = false;
+
+  function updateBulkRowNumbers() {
+    const rows = [...bulkProductRows.querySelectorAll(".bulk-product-row")];
+    rows.forEach((row, index) => {
+      const number = row.querySelector("[data-row-number]");
+      if (number) number.textContent = String(index + 1);
+      const removeButton = row.querySelector("[data-remove-row]");
+      if (removeButton) removeButton.disabled = rows.length === 1;
+    });
+  }
+
+  function addBulkProductRow(initial = {}) {
+    const currentCount = bulkProductRows.querySelectorAll(
+      ".bulk-product-row",
+    ).length;
+    if (currentCount >= MAX_BULK_PRODUCTS) {
+      showToast(`A maximum of ${MAX_BULK_PRODUCTS} products can be added at once.`, "error");
+      return;
+    }
+
+    const fragment = bulkProductTemplate.content.cloneNode(true);
+    const row = fragment.querySelector(".bulk-product-row");
+    row.querySelector('[data-field="name"]').value = initial.name || "";
+    row.querySelector('[data-field="price"]').value = initial.price || "";
+    row.querySelector('[data-field="description"]').value =
+      initial.description || "";
+    row.querySelector('[data-field="bestSeller"]').checked =
+      initial.is_best_seller === true;
+    row.querySelector('[data-field="inStock"]').checked =
+      initial.is_in_stock !== false;
+
+    row.querySelector("[data-remove-row]").addEventListener("click", () => {
+      if (bulkSaveInProgress) return;
+      row.remove();
+      updateBulkRowNumbers();
+    });
+
+    bulkProductRows.appendChild(fragment);
+    updateBulkRowNumbers();
+    window.lucide?.createIcons();
+  }
+
+  function resetBulkProductForm() {
+    document.getElementById("bulkProductForm").reset();
+    bulkProductRows.innerHTML = "";
+    bulkCustomCategoryGroup.hidden = true;
+    bulkProductCategoryCustom.value = "";
+    bulkProductStatus.textContent = "";
+    addBulkProductRow();
+    addBulkProductRow();
+  }
+
+  function openBulkProductModal() {
+    if (!bulkProductModal) return;
+    resetBulkProductForm();
+    bulkProductModal.classList.add("open");
+    bulkProductModal.setAttribute("aria-hidden", "false");
+    document.body.style.overflow = "hidden";
+    requestAnimationFrame(() => bulkProductCategory.focus());
+  }
+
+  function closeBulkProductModal() {
+    if (!bulkProductModal || bulkSaveInProgress) return;
+    bulkProductModal.classList.remove("open");
+    bulkProductModal.setAttribute("aria-hidden", "true");
+    document.body.style.overflow = document
+      .getElementById("adminOverlay")
+      ?.classList.contains("open")
+      ? "hidden"
+      : "";
+  }
+
+  bulkProductCategory?.addEventListener("change", () => {
+    const isCustom = bulkProductCategory.value === "__other__";
+    bulkCustomCategoryGroup.hidden = !isCustom;
+    bulkProductCategoryCustom.required = isCustom;
+    if (isCustom) {
+      bulkProductCategoryCustom.focus();
+    } else {
+      bulkProductCategoryCustom.value = "";
+    }
+  });
+
+  document
+    .getElementById("openBulkProductModal")
+    ?.addEventListener("click", openBulkProductModal);
+  document
+    .getElementById("closeBulkProductModal")
+    ?.addEventListener("click", closeBulkProductModal);
+  document
+    .getElementById("cancelBulkProductModal")
+    ?.addEventListener("click", closeBulkProductModal);
+  document
+    .getElementById("addBulkProductRow")
+    ?.addEventListener("click", () => addBulkProductRow());
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && bulkProductModal?.classList.contains("open")) {
+      closeBulkProductModal();
+    }
+  });
+
+  function getBulkCategoryValue() {
+    if (bulkProductCategory.value === "__other__") {
+      return bulkProductCategoryCustom.value.trim();
+    }
+    return bulkProductCategory.value.trim();
+  }
+
+  function collectBulkProductRows() {
+    const rows = [...bulkProductRows.querySelectorAll(".bulk-product-row")];
+    const products = [];
+
+    rows.forEach((row, index) => {
+      const name = row.querySelector('[data-field="name"]').value.trim();
+      const priceRaw = row.querySelector('[data-field="price"]').value.trim();
+      const description = row
+        .querySelector('[data-field="description"]')
+        .value.trim();
+      const imageFile = row.querySelector('[data-field="image"]').files[0] || null;
+      const isBestSeller = row.querySelector(
+        '[data-field="bestSeller"]',
+      ).checked;
+      const isInStock = row.querySelector('[data-field="inStock"]').checked;
+      const hasAnyValue = name || priceRaw || description || imageFile;
+
+      if (!hasAnyValue) return;
+
+      if (!name) {
+        throw new Error(`Item ${index + 1}: product name is required.`);
+      }
+      if (priceRaw === "" || Number.isNaN(Number(priceRaw)) || Number(priceRaw) < 0) {
+        throw new Error(`Item ${index + 1}: enter a valid price.`);
+      }
+      if (imageFile) {
+        if (!/^image\/(jpeg|png|webp)$/.test(imageFile.type)) {
+          throw new Error(
+            `Item ${index + 1}: image must be JPG, PNG, or WebP.`,
+          );
+        }
+        if (imageFile.size > MAX_BULK_IMAGE_BYTES) {
+          throw new Error(`Item ${index + 1}: image must be 8 MB or smaller.`);
+        }
+      }
+
+      products.push({
+        name,
+        price: Number(priceRaw),
+        description,
+        imageFile,
+        is_best_seller: isBestSeller,
+        is_in_stock: isInStock,
+      });
+    });
+
+    return products;
+  }
+
+  function createBulkImagePath(file, index) {
+    const extensionByType = {
+      "image/jpeg": "jpg",
+      "image/png": "png",
+      "image/webp": "webp",
+    };
+    const extension = extensionByType[file.type] || "jpg";
+    const unique =
+      window.crypto?.randomUUID?.() ||
+      `${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+    return `bulk/${Date.now()}_${index + 1}_${unique}.${extension}`;
+  }
+
+  document
+    .getElementById("bulkProductForm")
+    ?.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      if (bulkSaveInProgress) return;
+      if (!db) {
+        showToast("The product database is not available.", "error");
+        return;
+      }
+
+      const category = getBulkCategoryValue();
+      if (!category) {
+        showToast("Select or enter a product category.", "error");
+        bulkProductCategory.focus();
+        return;
+      }
+
+      let products;
+      try {
+        products = collectBulkProductRows();
+      } catch (error) {
+        showToast(error.message, "error");
+        bulkProductStatus.textContent = error.message;
+        return;
+      }
+
+      if (!products.length) {
+        showToast("Add at least one complete product item.", "error");
+        return;
+      }
+
+      bulkSaveInProgress = true;
+      saveBulkProductsBtn.disabled = true;
+      saveBulkProductsBtn.textContent = "Saving products…";
+      bulkProductStatus.textContent = `Preparing ${products.length} product${products.length === 1 ? "" : "s"}…`;
+
+      const uploadedPaths = [];
+      const payloads = [];
+
+      try {
+        for (let index = 0; index < products.length; index += 1) {
+          const product = products[index];
+          let imageUrl = "";
+
+          if (product.imageFile) {
+            bulkProductStatus.textContent = `Uploading image ${index + 1} of ${products.length}…`;
+            const path = createBulkImagePath(product.imageFile, index);
+            const { error: uploadError } = await db.storage
+              .from("products")
+              .upload(path, product.imageFile, {
+                cacheControl: "3600",
+                contentType: product.imageFile.type,
+                upsert: false,
+              });
+            if (uploadError) throw uploadError;
+            uploadedPaths.push(path);
+            imageUrl = db.storage.from("products").getPublicUrl(path)
+              .data.publicUrl;
+          }
+
+          payloads.push({
+            name: product.name,
+            category,
+            price: product.price,
+            description: product.description,
+            image_url: imageUrl,
+            video_url: null,
+            is_best_seller: product.is_best_seller,
+            is_in_stock: product.is_in_stock,
+          });
+        }
+
+        bulkProductStatus.textContent = `Saving ${payloads.length} product${payloads.length === 1 ? "" : "s"} to ${category}…`;
+        const { error: insertError } = await db.from("products").insert(payloads);
+        if (insertError) throw insertError;
+
+        showToast(
+          `${payloads.length} product${payloads.length === 1 ? "" : "s"} added to ${category} ✅`,
+        );
+        bulkSaveInProgress = false;
+        closeBulkProductModal();
+        await Promise.all([loadAdminProducts(), loadData()]);
+      } catch (error) {
+        console.error("Bulk product save failed:", error);
+        if (uploadedPaths.length) {
+          try {
+            await db.storage.from("products").remove(uploadedPaths);
+          } catch (cleanupError) {
+            console.warn("Could not clean up uploaded bulk images:", cleanupError);
+          }
+        }
+        bulkProductStatus.textContent = `Save failed: ${error.message}`;
+        showToast(`Could not save products: ${error.message}`, "error");
+      } finally {
+        bulkSaveInProgress = false;
+        saveBulkProductsBtn.disabled = false;
+        saveBulkProductsBtn.textContent = "Save All Products";
+      }
+    });
 
   // ═══════════════════════════════════════════════════════════
   //  ADMIN — VIDEOS CRUD
@@ -3325,7 +3827,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const urlEnquiry = `${url}?text=${enquiryText}`;
     const el = (id) => document.getElementById(id);
     if (el("navOrderBtn")) el("navOrderBtn").href = urlEnquiry;
+    if (el("mobileOrderBtn")) el("mobileOrderBtn").href = urlEnquiry;
     if (el("heroEnquireBtn")) el("heroEnquireBtn").href = urlEnquiry;
+    if (el("heroEnquireBtn2")) el("heroEnquireBtn2").href = urlEnquiry;
+    if (el("heroEnquireBtn3")) el("heroEnquireBtn3").href = urlEnquiry;
     if (el("footerWhatsappLink")) {
       el("footerWhatsappLink").href = url;
       el("footerWhatsappLink").textContent = `+${clean}`;
@@ -3459,28 +3964,3 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 }); // end DOMContentLoaded
-
-// ===== Mobile Sidebar Toggle =====
-document.addEventListener("DOMContentLoaded", () => {
-  const sidebar = document.querySelector(".admin-sidebar");
-  const toggleBtn = document.querySelector(".mobile-menu-toggle");
-
-  let overlay = document.querySelector(".admin-overlay");
-  if (!overlay) {
-    overlay = document.createElement("div");
-    overlay.className = "admin-overlay";
-    document.body.appendChild(overlay);
-  }
-
-  if (toggleBtn && sidebar) {
-    toggleBtn.addEventListener("click", () => {
-      sidebar.classList.toggle("open");
-      overlay.classList.toggle("active");
-    });
-  }
-
-  overlay.addEventListener("click", () => {
-    if (sidebar) sidebar.classList.remove("open");
-    overlay.classList.remove("active");
-  });
-});

@@ -1,0 +1,19 @@
+QUINTESSENCE COMMERCIAL MOBILE UPGRADE - VALIDATION REPORT
+Date: 2026-07-21
+
+PASS - JavaScript syntax checked with: node --check script.js
+PASS - Payload JavaScript syntax checked with Node.js
+PASS - index.html parsed successfully
+PASS - 218 HTML IDs are unique
+PASS - 190 JavaScript getElementById references resolve to HTML targets
+PASS - style.css parsed without top-level CSS errors
+PASS - commercial.css parsed without top-level CSS errors
+PASS - all nine payload files match upgrade-manifest.json SHA256 values
+PASS - payload runtime/documentation files exactly match the upgraded source
+PASS - original index.html and script.js baseline hashes match the uploaded archive
+PASS - original README.md baseline hash matches the uploaded archive
+PASS - clean-baseline patch simulation produced all upgraded managed files
+PASS - style.css, assets, and the existing Supabase edge function remain unchanged by the patch
+
+Environment note:
+PowerShell Core was not installed in the build container, so the .ps1 files were not runtime-executed here. They were kept ASCII-safe for Windows PowerShell compatibility, reviewed against the exact uploaded baseline/payload manifest, and their payload operation was simulated against a clean extracted baseline. A full visual browser/device smoke test must still be completed before production deployment.
