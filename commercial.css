@@ -1558,3 +1558,203 @@ footer {
   }
 }
 /* QUINTESSENCE MOBILE HERO HEIGHT END */
+/* QUINTESSENCE PRICE + SOFT HERO PATCH START */
+/* Keep product metadata left-aligned, but align every price consistently with the CTA. */
+.product-carousel .card-price,
+.products .card-price {
+  width: 100%;
+  align-self: center;
+  text-align: center;
+}
+
+/* Create a dedicated, softly blurred image layer without blurring the hero content. */
+.hero-slide {
+  isolation: isolate;
+  background-image: none !important;
+  transition: opacity 1.9s cubic-bezier(0.45, 0, 0.2, 1) !important;
+  will-change: opacity;
+}
+
+.hero-slide::before {
+  content: "";
+  position: absolute;
+  inset: -8px;
+  z-index: 0;
+  pointer-events: none;
+  background-image: var(--quintessence-hero-background, none);
+  background-position: center center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  filter: blur(3px) saturate(0.96) contrast(0.98);
+  transform: scale(1.025);
+  transform-origin: center;
+}
+
+.hero-slide.active,
+.hero-slide.leaving {
+  transition: opacity 1.9s cubic-bezier(0.45, 0, 0.2, 1) !important;
+}
+
+.hero-slide .hero-overlay {
+  z-index: 1;
+}
+
+/* Fade the message card gently with each background rather than snapping it in. */
+.hero-slide .overlay {
+  z-index: 2;
+  animation: none !important;
+  opacity: 0;
+  transform: translateY(14px) scale(0.985);
+  transition:
+    opacity 1.25s ease 0.18s,
+    transform 1.25s cubic-bezier(0.22, 1, 0.36, 1) 0.18s;
+  will-change: opacity, transform;
+}
+
+.hero-slide.active .overlay {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.hero-slide.leaving .overlay {
+  opacity: 0;
+  transform: translateY(-8px) scale(0.995);
+  transition-delay: 0s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-slide,
+  .hero-slide.active,
+  .hero-slide.leaving,
+  .hero-slide .overlay {
+    transition-duration: 0.01ms !important;
+    transition-delay: 0ms !important;
+  }
+}
+/* QUINTESSENCE PRICE + SOFT HERO PATCH END */
+/* QUINTESSENCE ALIGNMENT + ANALYTICS PATCH START */
+/* Public catalogue: keep every product's category, name and price on one centred axis. */
+.products .product-carousel .card-info {
+  align-items: stretch;
+  text-align: center;
+}
+
+.products .product-carousel .card-stock-badge,
+.products .product-carousel .card-category,
+.products .product-carousel .card-name,
+.products .product-carousel .card-price {
+  width: 100%;
+  align-self: stretch;
+  text-align: center;
+}
+
+.products .product-carousel .card-name {
+  margin-inline: auto;
+}
+
+/* The admin shell already displays the active tab title, so remove the duplicate heading. */
+#tab-analytics > .section-header {
+  display: none;
+}
+
+/* Desktop analytics: two balanced rows of six cards, followed by three equal charts. */
+#tab-analytics .analytics-grid {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 1rem;
+  align-items: stretch;
+  padding: 0;
+}
+
+#tab-analytics .analytics-query-warning,
+#tab-analytics .analytics-loading-card {
+  grid-column: 1 / -1;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0.75rem 1rem;
+  border: 1px solid rgba(214, 51, 132, 0.14);
+  border-radius: 12px;
+  background: #fff8fb;
+  color: var(--pink-mid);
+  font-size: 0.78rem;
+  line-height: 1.45;
+  text-align: center;
+}
+
+#tab-analytics .analytics-stat-card {
+  min-width: 0;
+  min-height: 132px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem 0.65rem;
+}
+
+#tab-analytics .analytics-stat-value,
+#tab-analytics .analytics-stat-label {
+  width: 100%;
+  text-align: center;
+}
+
+#tab-analytics .analytics-stat-value {
+  font-size: clamp(1.2rem, 1.8vw, 1.5rem);
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+
+#tab-analytics .analytics-stat-label {
+  min-height: 2.4em;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  line-height: 1.25;
+}
+
+#tab-analytics .analytics-charts {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  align-items: stretch;
+  padding: 1.25rem 0 0;
+}
+
+#tab-analytics .analytics-card {
+  min-width: 0;
+  height: 100%;
+}
+
+@media (max-width: 1279px) {
+  #tab-analytics .analytics-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 980px) {
+  #tab-analytics .analytics-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  #tab-analytics .analytics-charts {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 767px) {
+  #tab-analytics .analytics-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.65rem;
+  }
+
+  #tab-analytics .analytics-stat-card {
+    min-height: 118px;
+    padding: 0.85rem 0.5rem;
+  }
+
+  #tab-analytics .analytics-charts {
+    gap: 0.75rem;
+    padding-top: 0.85rem;
+  }
+}
+/* QUINTESSENCE ALIGNMENT + ANALYTICS PATCH END */

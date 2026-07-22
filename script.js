@@ -291,9 +291,15 @@ document.addEventListener("DOMContentLoaded", () => {
     const asset = await pickExistingAsset(base);
     if (!asset) return;
 
-    slide.style.backgroundImage = gradient
+    const resolvedHeroBackground = gradient
       ? `${gradient}, url('${asset}')`
       : `url('${asset}')`;
+
+    slide.style.setProperty(
+      "--quintessence-hero-background",
+      resolvedHeroBackground,
+    );
+    slide.style.backgroundImage = "none";
 
     // Make the card/overlay blend with the slide image for a uniform look
     const theme = await computeSlideTheme(asset);
@@ -328,7 +334,7 @@ document.addEventListener("DOMContentLoaded", () => {
     preloadCarouselImages(currentSlide);
 
     // Clean up leaving class after transition finishes
-    setTimeout(() => slides[prevIdx].classList.remove("leaving"), 1400);
+    setTimeout(() => slides[prevIdx].classList.remove("leaving"), 2100);
   }
 
   function startCarousel() {
@@ -996,7 +1002,7 @@ document.addEventListener("DOMContentLoaded", () => {
       safeQuery("subscribers", () =>
         db.from("subscribers").select("created_at"),
       ),
-      safeQuery("reviews", () => db.from("reviews").select("rating")),
+      safeQuery("reviews", () => db.from("reviews").select("id")),
       safeQuery("orders", () =>
         db.from("orders").select("status,total,created_at"),
       ),
